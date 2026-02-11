@@ -17,15 +17,18 @@ function App() {
         capital: 100,
         totalTrades: 10,
         targetWins: 4,
-        multiplier: 1.8
+        payout: 80 // Default payout %
     });
 
     const [trades, setTrades] = useState<TradeRecord[]>([]);
 
-    // Memoize logic instance based on config
+    // Derive multiplier from payout %: 1 + (payout / 100)
+    const multiplier = 1 + (config.payout / 100);
+
+    // Memoize logic instance based on config and derived multiplier
     const logic = useMemo(() =>
-        new TradingLogic(config.totalTrades, config.targetWins, config.multiplier),
-        [config]);
+        new TradingLogic(config.totalTrades, config.targetWins, multiplier),
+        [config.totalTrades, config.targetWins, multiplier]);
 
     // Derivations
     const currentPortfolio = useMemo(() => {
@@ -48,7 +51,7 @@ function App() {
         let portfolioAfter = currentPortfolio;
 
         if (result === 'W') {
-            portfolioAfter += amount * (config.multiplier - 1);
+            portfolioAfter += amount * (multiplier - 1);
         } else {
             portfolioAfter -= amount;
         }
@@ -59,7 +62,7 @@ function App() {
             result,
             portfolioAfter
         }]);
-    }, [nextTradeAmount, currentPortfolio, config.multiplier]);
+    }, [nextTradeAmount, currentPortfolio, multiplier]);
 
     const handleConfigUpdate = (newParams: Partial<typeof config>) => {
         setConfig(prev => ({ ...prev, ...newParams }));
@@ -107,7 +110,7 @@ function App() {
                         capital={config.capital}
                         totalTrades={config.totalTrades}
                         targetWins={config.targetWins}
-                        multiplier={config.multiplier}
+                        payout={config.payout}
                         onUpdate={handleConfigUpdate}
                     />
                 </aside>

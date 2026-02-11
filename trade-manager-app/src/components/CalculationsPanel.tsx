@@ -5,12 +5,12 @@ interface CalculationsPanelProps {
     capital: number;
     totalTrades: number;
     targetWins: number;
-    multiplier: number;
+    payout: number;
     onUpdate: (params: {
         capital?: number;
         totalTrades?: number;
         targetWins?: number;
-        multiplier?: number;
+        payout?: number;
     }) => void;
 }
 
@@ -18,7 +18,7 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
     capital,
     totalTrades,
     targetWins,
-    multiplier,
+    payout,
     onUpdate
 }) => {
     return (
@@ -48,11 +48,11 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                     onChange={(v) => onUpdate({ targetWins: v })}
                 />
                 <InputField
-                    label="Multiplier (%)"
-                    value={multiplier}
-                    step={0.1}
+                    label="Payout %"
+                    value={payout}
+                    step={1}
                     icon={<Percent size={16} />}
-                    onChange={(v) => onUpdate({ multiplier: v })}
+                    onChange={(v) => onUpdate({ payout: v })}
                 />
             </div>
 
