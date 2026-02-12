@@ -1,0 +1,10 @@
+{
+    "buildCommand": "cd trade-manager-app && npm install && npm run build",
+    "outputDirectory": "trade-manager-app/dist",
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}
