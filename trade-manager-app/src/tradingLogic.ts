@@ -69,9 +69,15 @@ export class TradingLogic {
         const fBelow = this.getFactor(tradeIndex + 1, winsReached);
         const fDiagonal = this.getFactor(tradeIndex + 1, winsReached + 1);
 
+        // If fBelow is 0, it means a loss results in failure. 
+        // We must win this trade to stay on path, so we bet everything needed to reach fDiagonal.
+        if (fBelow === 0) {
+            return currentPortfolio;
+        }
+
         const ratio = (this.multiplier * fDiagonal) / (fBelow + (this.multiplier - 1) * fDiagonal);
         const tradeAmount = (1 - ratio) * currentPortfolio;
 
-        return Math.max(0, tradeAmount);
+        return Math.max(0.01, Math.round(tradeAmount * 100) / 100);
     }
 }

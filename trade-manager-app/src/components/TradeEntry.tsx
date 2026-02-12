@@ -1,14 +1,14 @@
 import React from 'react';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 interface TradeEntryProps {
     amount: number;
     onResult: (result: 'W' | 'L') => void;
     disabled?: boolean;
+    isRiskCritical?: boolean;
 }
 
-export const TradeEntry: React.FC<TradeEntryProps> = ({ amount, onResult, disabled }) => {
+export const TradeEntry: React.FC<TradeEntryProps> = ({ amount, onResult, disabled, isRiskCritical }) => {
     return (
         <div className="glass-panel p-8 rounded-2xl flex flex-col items-center gap-6">
             <div className="text-center">
@@ -35,11 +35,19 @@ export const TradeEntry: React.FC<TradeEntryProps> = ({ amount, onResult, disabl
                 </button>
             </div>
 
-            {amount === 0 && (
-                <p className="text-xs text-amber-500 font-medium animate-pulse text-center">
-                    Session Target Reached or Limit Exceeded. <br />Reset to start new session.
-                </p>
-            )}
+            <div className="text-center space-y-2">
+                {amount === 0 && (
+                    <p className="text-xs text-amber-500 font-medium animate-pulse">
+                        Session Target Reached or Limit Exceeded. <br />Reset to start new session.
+                    </p>
+                )}
+
+                {isRiskCritical && (
+                    <p className="text-xs text-red-500 font-bold uppercase tracking-wider animate-bounce bg-red-500/10 py-2 px-4 rounded-lg border border-red-500/20">
+                        ⚠️ if you continue you might loose youre entire money continue at your own risk
+                    </p>
+                )}
+            </div>
         </div>
     );
 };

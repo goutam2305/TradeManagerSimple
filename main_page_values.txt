@@ -1,0 +1,50 @@
+A1: None | B1: None | C1: None | D1: None | E1: None | F1: None | G1: None | H1: None | I1: None
+A2: None | B2: MONEY MANAGEMENT SHEET | C2: None | D2: None | E2: None | F2: None | G2: None | H2: None | I2: None
+A3: None | B3: None | C3: None | D3: None | E3: None | F3: None | G3: None | H3: None | I3: None
+A4: None | B4: Sr No | C4: Enter W/L results | D4: Trade Amount | E4: Return | F4: Current Portfolio | G4: None | H4: Calculations | I4: Normale
+A5: None | B5: 1 | C5: None | D5: 6.819867096793408 | E5: None | F5: None | G5: None | H5: Intial Capital | I5: 100
+A6: None | B6: 2 | C6: None | D6: #VALUE! | E6: #VALUE! | F6: #VALUE! | G6: None | H6: Total Trades | I6: 10
+A7: None | B7: 3 | C7: None | D7: #VALUE! | E7: #VALUE! | F7: #VALUE! | G7: None | H7: Win Trades | I7: 4
+A8: None | B8: 4 | C8: None | D8: #VALUE! | E8: #VALUE! | F8: #VALUE! | G8: None | H8: Percentage | I8: 1.8
+A9: None | B9: 5 | C9: None | D9: #VALUE! | E9: #VALUE! | F9: #VALUE! | G9: None | H9: None | I9: None
+A10: None | B10: 6 | C10: None | D10: #VALUE! | E10: #VALUE! | F10: #VALUE! | G10: None | H10: Winning | I10: None
+A11: None | B11: 7 | C11: None | D11: #VALUE! | E11: #VALUE! | F11: #VALUE! | G11: None | H11: Capital Final | I11: 110.58131608069337
+A12: None | B12: 8 | C12: None | D12: #VALUE! | E12: #VALUE! | F12: #VALUE! | G12: None | H12: Ratio | I12: 0.1058131608069337
+A13: None | B13: 9 | C13: None | D13: #VALUE! | E13: #VALUE! | F13: #VALUE! | G13: None | H13: Win Profit | I13: 10.58131608069337
+A14: None | B14: 10 | C14: None | D14: #VALUE! | E14: #VALUE! | F14: #VALUE! | G14: None | H14: None | I14: None
+A15: None | B15:   | C15: None | D15: #VALUE! | E15: #VALUE! | F15: #VALUE! | G15: None | H15: Sequence | I15: Number
+A16: None | B16:   | C16: None | D16: #VALUE! | E16: #VALUE! | F16: #VALUE! | G16: None | H16: Events Win | I16: 0
+A17: None | B17:   | C17: None | D17: #VALUE! | E17: #VALUE! | F17: #VALUE! | G17: None | H17: Events Loose | I17: 0
+A18: None | B18: None | C18: None | D18: None | E18: None | F18: None | G18: None | H18: None | I18: None
+A19: None | B19:   If you don’t know to use this sheet then click here to watch tutorial 👉🏼  | C19: None | D19: None | E19: None | F19: None | G19: None | H19: None | I19: None
+A20: None | B20: None | C20: None | D20: None | E20: None | F20: None | G20: None | H20: None | I20: None
+A21: None | B21: None | C21: None | D21: None | E21: None | F21: None | G21: None | H21: None | I21: None
+A22: None | B22: None | C22: None | D22: None | E22: None | F22: None | G22: None | H22: None | I22: None
+A23: None | B23: None | C23: None | D23: None | E23: None | F23: None | G23: None | H23: None | I23: None
+A24: None | B24: None | C24: None | D24: None | E24: None | F24: None | G24: None | H24: None | I24: None
+A25: None | B25: None | C25: None | D25: None | E25: None | F25: None | G25: None | H25: None | I25: None
+A26: None | B26: None | C26: None | D26: None | E26: None | F26: None | G26: None | H26: None | I26: None
+A27: None | B27: None | C27: None | D27: None | E27: None | F27: None | G27: None | H27: None | I27: None
+A28: None | B28: None | C28: None | D28: None | E28: None | F28: None | G28: None | H28: None | I28: None
+A29: None | B29: None | C29: None | D29: None | E29: None | F29: None | G29: None | H29: None | I29: None
+A30: None | B30: None | C30: None | D30: None | E30: None | F30: None | G30: None | H30: None | I30: None
+A31: None | B31: None | C31: None | D31: None | E31: None | F31: None | G31: None | H31: None | I31: None
+A32: None | B32: None | C32: None | D32: None | E32: None | F32: None | G32: None | H32: None | I32: None
+A33: None | B33: None | C33: None | D33: None | E33: None | F33: None | G33: None | H33: None | I33: None
+A34: None | B34: None | C34: None | D34: None | E34: None | F34: None | G34: None | H34: None | I34: None
+A35: None | B35: None | C35: None | D35: None | E35: None | F35: None | G35: None | H35: None | I35: None
+A36: None | B36: None | C36: None | D36: None | E36: None | F36: None | G36: None | H36: None | I36: None
+A37: None | B37: None | C37: None | D37: None | E37: None | F37: None | G37: None | H37: None | I37: None
+A38: None | B38: None | C38: None | D38: None | E38: None | F38: None | G38: None | H38: None | I38: None
+A39: None | B39: None | C39: None | D39: None | E39: None | F39: None | G39: None | H39: None | I39: None
+A40: None | B40: None | C40: None | D40: None | E40: None | F40: None | G40: None | H40: None | I40: None
+A41: None | B41: None | C41: None | D41: None | E41: None | F41: None | G41: None | H41: None | I41: None
+A42: None | B42: None | C42: None | D42: None | E42: None | F42: None | G42: None | H42: None | I42: None
+A43: None | B43: None | C43: None | D43: None | E43: None | F43: None | G43: None | H43: None | I43: None
+A44: None | B44: None | C44: None | D44: None | E44: None | F44: None | G44: None | H44: None | I44: None
+A45: None | B45: None | C45: None | D45: None | E45: None | F45: None | G45: None | H45: None | I45: None
+A46: None | B46: None | C46: None | D46: None | E46: None | F46: None | G46: None | H46: None | I46: None
+A47: None | B47: None | C47: None | D47: None | E47: None | F47: None | G47: None | H47: None | I47: None
+A48: None | B48: None | C48: None | D48: None | E48: None | F48: None | G48: None | H48: None | I48: None
+A49: None | B49: None | C49: None | D49: None | E49: None | F49: None | G49: None | H49: None | I49: None
+A50: None | B50: None | C50: None | D50: None | E50: None | F50: None | G50: None | H50: None | I50: None

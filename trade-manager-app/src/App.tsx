@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { CalculationsPanel } from './components/CalculationsPanel';
 import { TradeLog } from './components/TradeLog';
@@ -17,10 +17,14 @@ function App() {
         capital: 100,
         totalTrades: 10,
         targetWins: 4,
-        payout: 80 // Default payout %
+        payout: 80, // Default payout %
+        autoCompounding: false,
+        stopLossLimit: 20, // Default 20% drawdown limit
+        stopLossEnabled: false
     });
 
     const [trades, setTrades] = useState<TradeRecord[]>([]);
+    const [sessionCount, setSessionCount] = useState(1);
 
     // Derive multiplier from payout %: 1 + (payout / 100)
     const multiplier = 1 + (config.payout / 100);
@@ -45,6 +49,19 @@ function App() {
         return logic.getTradeAmount(currentTradeIndex, currentWins, currentPortfolio);
     }, [logic, currentTradeIndex, currentWins, currentPortfolio]);
 
+    const projectedGrowth = useMemo(() => {
+        const factor = logic.getFactor(0, 0);
+        return (factor - 1) * 100;
+    }, [logic]);
+
+    const isRiskCritical = useMemo(() => {
+        if (!config.stopLossEnabled) return false;
+        const currentDrawdown = currentPortfolio < config.capital
+            ? ((config.capital - currentPortfolio) / config.capital) * 100
+            : 0;
+        return currentDrawdown >= config.stopLossLimit;
+    }, [config.stopLossEnabled, config.stopLossLimit, currentPortfolio, config.capital]);
+
     // Actions
     const handleTradeResult = useCallback((result: 'W' | 'L') => {
         const amount = nextTradeAmount;
@@ -56,21 +73,39 @@ function App() {
             portfolioAfter -= amount;
         }
 
-        setTrades(prev => [...prev, {
+        const newTrade: TradeRecord = {
             id: Date.now(),
             amount,
             result,
             portfolioAfter
-        }]);
-    }, [nextTradeAmount, currentPortfolio, multiplier]);
+        };
+
+        setTrades(prev => {
+            const updatedTrades = [...prev, newTrade];
+
+            return updatedTrades;
+        });
+    }, [nextTradeAmount, currentPortfolio, multiplier, currentWins, config.targetWins, config.totalTrades, config.autoCompounding]);
 
     const handleConfigUpdate = (newParams: Partial<typeof config>) => {
+        const structuralFields = ['capital', 'totalTrades', 'targetWins', 'payout'];
+        const isStructuralChange = Object.keys(newParams).some(key => structuralFields.includes(key));
+
         setConfig(prev => ({ ...prev, ...newParams }));
-        setTrades([]); // Reset session when config changes
+
+        if (isStructuralChange) {
+            setTrades([]); // Only reset session for structural changes
+        }
     };
 
     const handleReset = () => {
+        if (config.autoCompounding) {
+            // Copy current portfolio to initial capital for compounding (round to 2 decimals)
+            const roundedCapital = Math.round(currentPortfolio * 100) / 100;
+            setConfig(prev => ({ ...prev, capital: roundedCapital }));
+        }
         setTrades([]);
+        setSessionCount(prev => prev + 1);
     };
 
     return (
@@ -89,10 +124,12 @@ function App() {
             <Dashboard
                 currentPortfolio={currentPortfolio}
                 initialCapital={config.capital}
-                totalTrades={config.totalTrades}
                 targetWins={config.targetWins}
                 currentWins={currentWins}
-                currentTradeAmount={nextTradeAmount}
+                projectedGrowth={projectedGrowth}
+                stopLossLimit={config.stopLossLimit}
+                stopLossEnabled={config.stopLossEnabled}
+                sessionCount={sessionCount}
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 min-h-0">
@@ -101,6 +138,7 @@ function App() {
                         amount={nextTradeAmount}
                         onResult={handleTradeResult}
                         disabled={trades.length >= config.totalTrades || currentWins >= config.targetWins}
+                        isRiskCritical={isRiskCritical}
                     />
                     <TradeLog trades={trades} onReset={handleReset} />
                 </div>
@@ -111,6 +149,9 @@ function App() {
                         totalTrades={config.totalTrades}
                         targetWins={config.targetWins}
                         payout={config.payout}
+                        autoCompounding={config.autoCompounding}
+                        stopLossLimit={config.stopLossLimit}
+                        stopLossEnabled={config.stopLossEnabled}
                         onUpdate={handleConfigUpdate}
                     />
                 </aside>
