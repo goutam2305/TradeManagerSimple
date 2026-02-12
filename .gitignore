@@ -44,6 +44,7 @@ tmp/
 *.json
 !package.json
 !tsconfig.json
+!tsconfig.node.json
 !extracted_logic.json
 !extracted_data_with_values.json
 !vercel.json
