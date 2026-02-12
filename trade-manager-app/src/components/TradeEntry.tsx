@@ -1,5 +1,6 @@
-import React from 'react';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface TradeEntryProps {
     amount: number;
@@ -9,11 +10,42 @@ interface TradeEntryProps {
 }
 
 export const TradeEntry: React.FC<TradeEntryProps> = ({ amount, onResult, disabled, isRiskCritical }) => {
+    const [copied, setCopied] = useState(false);
+
+    const copyToClipboard = () => {
+        if (amount <= 0) return;
+        navigator.clipboard.writeText(amount.toFixed(2));
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     return (
-        <div className="glass-panel p-8 rounded-2xl flex flex-col items-center gap-6">
-            <div className="text-center">
+        <div className="glass-panel p-8 rounded-2xl flex flex-col items-center gap-6 relative overflow-hidden">
+            <div className="text-center relative group">
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">Execute Next Trade</p>
-                <p className="text-5xl font-mono font-black text-white">${amount.toFixed(2)}</p>
+                <button
+                    onClick={copyToClipboard}
+                    disabled={disabled || amount === 0}
+                    className="flex items-center gap-3 hover:scale-105 transition-transform active:scale-95 group/btn"
+                >
+                    <p className="text-5xl font-mono font-black text-white">${amount.toFixed(2)}</p>
+                    <div className={`p-2 rounded-lg transition-colors ${copied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800/40 text-slate-500 group-hover/btn:text-blue-400'}`}>
+                        {copied ? <Check size={20} className="animate-bounce" /> : <Copy size={20} />}
+                    </div>
+
+                    <AnimatePresence>
+                        {copied && (
+                            <motion.span
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20"
+                            >
+                                Copied!
+                            </motion.span>
+                        )}
+                    </AnimatePresence>
+                </button>
             </div>
 
             <div className="flex gap-4 w-full max-w-sm">

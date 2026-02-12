@@ -11,6 +11,8 @@ interface DashboardProps {
     stopLossLimit: number;
     stopLossEnabled: boolean;
     sessionCount: number;
+    sessionsRequired: number;
+    goalFinalCapital: number;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -21,7 +23,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     projectedGrowth,
     stopLossLimit,
     stopLossEnabled,
-    sessionCount
+    sessionCount,
+    sessionsRequired,
+    goalFinalCapital
 }) => {
     const portfolioGrowth = ((currentPortfolio - initialCapital) / initialCapital) * 100;
     const currentDrawdown = currentPortfolio < initialCapital
@@ -53,7 +57,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <StatCard
                 label="Projected Growth"
                 value={`${projectedGrowth.toFixed(2)}%`}
-                subValue={`Return: $${(initialCapital * projectedGrowth / 100).toFixed(2)}`}
+                subValue={`Goal Final: $${goalFinalCapital.toFixed(2)}`}
                 icon={<TrendingUp className="text-emerald-400" size={20} />}
                 accent
             />
@@ -74,7 +78,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <StatCard
                 label="Session Count"
                 value={`#${sessionCount}`}
-                subValue="Active Session"
+                subValue={`Session ${sessionCount} of ${sessionsRequired}`}
                 icon={<ListChecks className="text-slate-400" size={20} />}
             />
         </div>

@@ -80,4 +80,31 @@ export class TradingLogic {
 
         return Math.max(0.01, Math.round(tradeAmount * 100) / 100);
     }
+
+    /**
+     * Finds the minimum initial capital required so that the trade at the
+     * specified (tradeIndex, winsReached) is at least minTradeAmount.
+     * Aligned with Excel logic: minTradeAmount / ratio
+     */
+    public getMinimumRequiredCapital(tradeIndex: number, winsReached: number, minTradeAmount: number): number {
+        const tradesLeft = this.totalTrades - tradeIndex;
+        const winsNeeded = this.targetWins - winsReached;
+
+        // If we've reached the target or it's impossible, min capital is just the min trade amount
+        if (winsNeeded <= 0 || winsNeeded > tradesLeft) return minTradeAmount;
+
+        const fBelow = this.getFactor(tradeIndex + 1, winsReached);
+        const fDiagonal = this.getFactor(tradeIndex + 1, winsReached + 1);
+
+        let ratio: number;
+        if (fBelow === 0) {
+            ratio = 1.0;
+        } else {
+            const r = (this.multiplier * fDiagonal) / (fBelow + (this.multiplier - 1) * fDiagonal);
+            ratio = 1 - r;
+        }
+
+        // Return the capital needed to make this specific trade exactly minTradeAmount
+        return ratio > 0 ? minTradeAmount / ratio : minTradeAmount;
+    }
 }

@@ -9,6 +9,10 @@ interface CalculationsPanelProps {
     autoCompounding: boolean;
     stopLossLimit: number;
     stopLossEnabled: boolean;
+    dailyGoal: number;
+    dailyGoalType: '%' | '$';
+    sessionsRequired: number;
+    minRequiredCapital: number;
     onUpdate: (params: {
         capital?: number;
         totalTrades?: number;
@@ -17,6 +21,8 @@ interface CalculationsPanelProps {
         autoCompounding?: boolean;
         stopLossLimit?: number;
         stopLossEnabled?: boolean;
+        dailyGoal?: number;
+        dailyGoalType?: '%' | '$';
     }) => void;
 }
 
@@ -28,6 +34,10 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
     autoCompounding,
     stopLossLimit,
     stopLossEnabled,
+    dailyGoal,
+    dailyGoalType,
+    sessionsRequired,
+    minRequiredCapital,
     onUpdate
 }) => {
     return (
@@ -69,6 +79,19 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                     </div>
                 </div>
 
+                <div className="flex items-center justify-between px-1 -mt-2">
+                    <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-mono font-bold ${capital < minRequiredCapital ? 'text-red-400 animate-pulse' : 'text-emerald-400/80'}`}>
+                            ($) {minRequiredCapital.toFixed(2)} min.
+                        </span>
+                    </div>
+                    {capital < minRequiredCapital && (
+                        <span className="text-[8px] font-bold text-red-500/80 uppercase tracking-tighter">
+                            ⚠️ Insufficient
+                        </span>
+                    )}
+                </div>
+
                 <InputField
                     label="Total Trades"
                     value={totalTrades}
@@ -104,21 +127,53 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                                 className="absolute top-1 left-1.5 w-3 h-3 bg-white rounded-full shadow-sm"
                             />
                         </motion.button>
+                        {stopLossEnabled && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                            >
+                                <InputField
+                                    label="Max Loss Limit %"
+                                    value={stopLossLimit}
+                                    icon={<Percent size={16} className="text-red-400" />}
+                                    onChange={(v) => onUpdate({ stopLossLimit: v })}
+                                />
+                            </motion.div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-800 space-y-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-text-secondary uppercase tracking-widest">Daily Goal</span>
                     </div>
 
-                    {stopLossEnabled && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                        >
+                    <div className="flex items-end gap-3">
+                        <div className="flex-1">
                             <InputField
-                                label="Max Loss Limit %"
-                                value={stopLossLimit}
-                                icon={<Percent size={16} className="text-red-400" />}
-                                onChange={(v) => onUpdate({ stopLossLimit: v })}
+                                label="Profit Target"
+                                value={dailyGoal}
+                                icon={dailyGoalType === '$' ? <DollarSign size={16} /> : <Percent size={16} />}
+                                onChange={(v) => onUpdate({ dailyGoal: v })}
                             />
-                        </motion.div>
-                    )}
+                        </div>
+                        <div className="pb-1.5">
+                            <motion.button
+                                onClick={() => onUpdate({ dailyGoalType: dailyGoalType === '$' ? '%' : '$' })}
+                                whileTap={{ scale: 0.95 }}
+                                className="px-3 py-2 rounded-xl bg-slate-800/40 border border-slate-700/50 text-blue-400 font-mono font-bold text-sm w-12 text-center"
+                            >
+                                {dailyGoalType}
+                            </motion.button>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between px-1">
+                        <span className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-widest">Sessions Required</span>
+                        <span className="text-sm font-mono font-bold text-white bg-emerald-500/20 px-2 py-0.5 rounded-lg border border-emerald-500/30">
+                            {sessionsRequired}
+                        </span>
+                    </div>
                 </div>
             </div>
 

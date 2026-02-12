@@ -20,7 +20,9 @@ function App() {
         payout: 80, // Default payout %
         autoCompounding: false,
         stopLossLimit: 20, // Default 20% drawdown limit
-        stopLossEnabled: false
+        stopLossEnabled: false,
+        dailyGoal: 2,
+        dailyGoalType: '%' as '%' | '$'
     });
 
     const [trades, setTrades] = useState<TradeRecord[]>([]);
@@ -53,6 +55,37 @@ function App() {
         const factor = logic.getFactor(0, 0);
         return (factor - 1) * 100;
     }, [logic]);
+
+    const minRequiredCapital = useMemo(() => {
+        return logic.getMinimumRequiredCapital(0, 0, 1.0);
+    }, [logic]);
+
+    const sessionsRequired = useMemo(() => {
+        const factor = logic.getFactor(0, 0);
+        const growthPerSession = factor - 1;
+        if (growthPerSession <= 0) return 0;
+
+        if (config.dailyGoalType === '%') {
+            const goalFraction = config.dailyGoal / 100;
+            // Compound interest formula: (1 + growthPerSession)^n = 1 + goalFraction
+            // n * log(1 + growthPerSession) = log(1 + goalFraction)
+            return Math.ceil(Math.log(1 + goalFraction) / Math.log(factor));
+        } else {
+            // How many sessions to reach a fixed dollar profit
+            // This is harder with compounding, but if we assume compounding:
+            // capital * (factor^n) = capital + dailyGoal
+            // factor^n = (capital + dailyGoal) / capital
+            return Math.ceil(Math.log((config.capital + config.dailyGoal) / config.capital) / Math.log(factor));
+        }
+    }, [logic, config.dailyGoal, config.dailyGoalType, config.capital]);
+
+    const goalFinalCapital = useMemo(() => {
+        if (config.dailyGoalType === '%') {
+            return config.capital * (1 + config.dailyGoal / 100);
+        } else {
+            return config.capital + config.dailyGoal;
+        }
+    }, [config.capital, config.dailyGoal, config.dailyGoalType]);
 
     const isRiskCritical = useMemo(() => {
         if (!config.stopLossEnabled) return false;
@@ -99,13 +132,18 @@ function App() {
     };
 
     const handleReset = () => {
-        if (config.autoCompounding) {
-            // Copy current portfolio to initial capital for compounding (round to 2 decimals)
-            const roundedCapital = Math.round(currentPortfolio * 100) / 100;
-            setConfig(prev => ({ ...prev, capital: roundedCapital }));
+        const isSessionComplete = currentWins >= config.targetWins || trades.length >= config.totalTrades;
+
+        if (isSessionComplete) {
+            if (config.autoCompounding) {
+                // Copy current portfolio to initial capital for compounding (round to 2 decimals)
+                const roundedCapital = Math.round(currentPortfolio * 100) / 100;
+                setConfig(prev => ({ ...prev, capital: roundedCapital }));
+            }
+            setSessionCount(prev => prev + 1);
         }
+
         setTrades([]);
-        setSessionCount(prev => prev + 1);
     };
 
     return (
@@ -130,6 +168,8 @@ function App() {
                 stopLossLimit={config.stopLossLimit}
                 stopLossEnabled={config.stopLossEnabled}
                 sessionCount={sessionCount}
+                sessionsRequired={sessionsRequired}
+                goalFinalCapital={goalFinalCapital}
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 min-h-0">
@@ -152,6 +192,10 @@ function App() {
                         autoCompounding={config.autoCompounding}
                         stopLossLimit={config.stopLossLimit}
                         stopLossEnabled={config.stopLossEnabled}
+                        dailyGoal={config.dailyGoal}
+                        dailyGoalType={config.dailyGoalType}
+                        sessionsRequired={sessionsRequired}
+                        minRequiredCapital={minRequiredCapital}
                         onUpdate={handleConfigUpdate}
                     />
                 </aside>
