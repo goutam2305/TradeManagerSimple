@@ -46,4 +46,6 @@ tmp/
 !tsconfig.json
 !extracted_logic.json
 !extracted_data_with_values.json
+!vercel.json
+!**/vercel.json
 extract_logic.py
