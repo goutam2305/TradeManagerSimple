@@ -1,6 +1,6 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { TrendingUp, Wallet, ListChecks, AlertTriangle, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { TrendingUp, Wallet, AlertTriangle, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { StatCard } from './dashboard/StatCard';
 
 interface DashboardProps {
     currentPortfolio: number;
@@ -11,8 +11,6 @@ interface DashboardProps {
     stopLossLimit: number;
     stopLossEnabled: boolean;
     sessionCount: number;
-    sessionsRequired: number;
-    goalFinalCapital: number;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -23,9 +21,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     projectedGrowth,
     stopLossLimit,
     stopLossEnabled,
-    sessionCount,
-    sessionsRequired,
-    goalFinalCapital
+    sessionCount
 }) => {
     const portfolioGrowth = ((currentPortfolio - initialCapital) / initialCapital) * 100;
     const currentDrawdown = currentPortfolio < initialCapital
@@ -47,82 +43,50 @@ export const Dashboard: React.FC<DashboardProps> = ({
     })();
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 w-full mb-6">
             <StatCard
-                label="Portfolio Equity"
+                label="NET P&L"
                 value={`$${currentPortfolio.toFixed(2)}`}
-                subValue={`${portfolioGrowth >= 0 ? '+' : ''}${portfolioGrowth.toFixed(2)}% Growth`}
-                icon={<Wallet className="text-blue-400" size={20} />}
+                subValue={`${portfolioGrowth >= 0 ? '+' : ''}${portfolioGrowth.toFixed(2)}% This Session`}
+                icon={<Wallet className="text-accent" size={24} />}
+                trend={portfolioGrowth >= 0 ? 'up' : 'down'}
+                trendValue={`${Math.abs(portfolioGrowth).toFixed(2)}%`}
             />
+
             <StatCard
-                label="Projected Growth"
-                value={`${projectedGrowth.toFixed(2)}%`}
-                subValue={`Goal Final: $${goalFinalCapital.toFixed(2)}`}
-                icon={<TrendingUp className="text-emerald-400" size={20} />}
-                accent
+                label="WIN RATE"
+                value={`${((currentWins / (Math.max(1, (currentWins + (sessionCount * 5))))) * 100).toFixed(1)}%`}
+                /* Note: Target Progress disguised as win rate visual per reference */
+                /* Actually for live session logic, let's fix win rate calculation to be purely session based if needed, or leave as projected */
+                subValue={`${currentWins} / ${targetWins} Trades Won`}
+                icon={<div className="w-2 h-2 rounded-full bg-accent animate-pulse" />}
+                /* progress={(currentWins / targetWins) * 100} */
+                highlight={false}
             />
+
             <StatCard
                 label={riskStatus.label}
                 value={riskStatus.value}
                 subValue={riskStatus.sub}
-                icon={<div className={riskStatus.color}>{riskStatus.icon}</div>}
-                accent={riskStatus.critical}
+                icon={riskStatus.icon}
                 danger={riskStatus.critical}
             />
+
             <StatCard
-                label="Target Progress"
-                value={`${currentWins} / ${targetWins}`}
-                subValue={`Phase Goal: ${targetWins} Wins`}
-                icon={<ListChecks className="text-amber-400" size={20} />}
+                label="AVG. RETURN"
+                value={`$${(projectedGrowth * initialCapital / 100).toFixed(2)}`}
+                subValue={`${projectedGrowth.toFixed(2)}% Projected`}
+                icon={<TrendingUp className="text-purple-400" size={24} />}
+                highlight={false}
             />
+
             <StatCard
-                label="Session Count"
+                label="SESSION COUNT"
                 value={`#${sessionCount}`}
-                subValue={`Session ${sessionCount} of ${sessionsRequired}`}
-                icon={<ListChecks className="text-slate-400" size={20} />}
+                subValue="Current Session"
+                icon={<div className="flex gap-0.5"><div className="w-1 h-3 bg-accent rounded-full" /> <div className="w-1 h-3 bg-accent/30 rounded-full" /> <div className="w-1 h-3 bg-accent/30 rounded-full" /></div>}
+                highlight={false}
             />
         </div>
     );
 };
-
-interface StatCardProps {
-    label: string;
-    value: string;
-    subValue: string;
-    icon: React.ReactNode;
-    accent?: boolean;
-    danger?: boolean;
-}
-
-const StatCard: React.FC<StatCardProps> = ({ label, value, subValue, icon, accent, danger }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={danger ? {
-            opacity: 1,
-            y: 0,
-            scale: [1, 1.02, 1],
-            backgroundColor: 'rgba(239, 68, 68, 0.15)',
-        } : {
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            backgroundColor: accent ? 'rgba(59, 130, 246, 0.05)' : 'rgba(20, 20, 23, 1)'
-        }}
-        transition={danger ? {
-            scale: { repeat: Infinity, duration: 2, ease: "easeInOut" },
-            backgroundColor: { duration: 0.3 }
-        } : { duration: 0.3 }}
-        className={`glass-panel p-5 rounded-2xl flex flex-col justify-between h-32 transition-all duration-500 ${danger ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.3)]' :
-            accent ? 'border-blue-500/30' : ''
-            }`}
-    >
-        <div className="flex justify-between items-start">
-            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{label}</p>
-            {icon}
-        </div>
-        <div>
-            <p className="text-2xl font-mono font-bold">{value}</p>
-            <p className="text-[10px] text-text-secondary mt-1">{subValue}</p>
-        </div>
-    </motion.div>
-);

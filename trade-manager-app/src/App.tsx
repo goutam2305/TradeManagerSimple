@@ -8,35 +8,50 @@ import { TradeLog } from './components/TradeLog';
 import { TradeEntry } from './components/TradeEntry';
 import { History } from './components/History';
 import { TradingLogic } from './tradingLogic';
+import { LandingPage } from './components/LandingPage';
+import { Layout } from './components/Layout';
+import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { History as HistoryIcon } from 'lucide-react';
+import { ImageModal } from './components/ImageModal';
 
 interface TradeRecord {
-    id: number;
+    id: number; // Timestamp
+    dbId?: string; // Database Primary Key (UUID)
     amount: number;
     result: 'W' | 'L' | null;
     portfolioAfter: number;
+    imageUrl?: string;
 }
 
 function App() {
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
     const [dbSessionId, setDbSessionId] = useState<string | null>(null);
-    const [showHistory, setShowHistory] = useState(false);
+    const [viewImage, setViewImage] = useState<string | null>(null);
 
     const [config, setConfig] = useState({
         capital: 100,
-        totalTrades: 10,
-        targetWins: 4,
-        payout: 80,
-        autoCompounding: false,
-        stopLossLimit: 20,
-        stopLossEnabled: false,
+        totalTrades: 6,
+        targetWins: 1,
+        payout: 92,
+        autoCompounding: true,
+        stopLossLimit: 10,
+        stopLossEnabled: true,
         dailyGoal: 2,
         dailyGoalType: '%' as '%' | '$'
     });
 
     const [trades, setTrades] = useState<TradeRecord[]>([]);
     const [sessionCount, setSessionCount] = useState(1);
+
+    // View State with Persistence
+    const [currentView, setCurrentView] = useState(() => {
+        return localStorage.getItem('tradeflow_current_view') || 'trademanager';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('tradeflow_current_view', currentView);
+    }, [currentView]);
 
     // Auth & Data Loading
     useEffect(() => {
@@ -57,7 +72,8 @@ function App() {
         if (!session) return;
 
         const loadData = async () => {
-            // 1. Load Config
+
+            // Initial Load Config
             const { data: configData } = await supabase
                 .from('protected_configs')
                 .select('*')
@@ -101,9 +117,11 @@ function App() {
                 if (tradeData) {
                     const mappedTrades: TradeRecord[] = tradeData.map(t => ({
                         id: new Date(t.created_at).getTime(),
+                        dbId: t.id,
                         amount: t.amount,
                         result: t.result as 'W' | 'L' | null,
-                        portfolioAfter: t.portfolio_after
+                        portfolioAfter: t.portfolio_after,
+                        imageUrl: t.image_url
                     }));
                     setTrades(mappedTrades);
                 }
@@ -170,14 +188,6 @@ function App() {
         }
     }, [logic, config.dailyGoal, config.dailyGoalType, config.capital]);
 
-    const goalFinalCapital = useMemo(() => {
-        if (config.dailyGoalType === '%') {
-            return config.capital * (1 + config.dailyGoal / 100);
-        } else {
-            return config.capital + config.dailyGoal;
-        }
-    }, [config.capital, config.dailyGoal, config.dailyGoalType]);
-
     const isRiskCritical = useMemo(() => {
         if (!config.stopLossEnabled) return false;
         const currentDrawdown = currentPortfolio < config.capital
@@ -198,16 +208,6 @@ function App() {
         } else {
             portfolioAfter -= amount;
         }
-
-        const newTrade: TradeRecord = {
-            id: Date.now(),
-            amount,
-            result,
-            portfolioAfter
-        };
-
-        // Optimistic UI update
-        setTrades(prev => [...prev, newTrade]);
 
         // DB Sync
         let currentDbSessionId = dbSessionId;
@@ -234,9 +234,10 @@ function App() {
             }
         }
 
-        // Insert Trade
+        let newDbTradeId: string | undefined;
+
         if (currentDbSessionId) {
-            await supabase.from('trades').insert({
+            const { data: insertedTrade } = await supabase.from('trades').insert({
                 session_id: currentDbSessionId,
                 user_id: session.user.id,
                 trade_index: currentTradeIndex, // 0-based
@@ -244,8 +245,24 @@ function App() {
                 amount: amount,
                 result: result,
                 portfolio_after: portfolioAfter
-            });
+            }).select().single();
+
+            if (insertedTrade) {
+                newDbTradeId = insertedTrade.id;
+            }
         }
+
+        const newTrade: TradeRecord = {
+            id: Date.now(),
+            dbId: newDbTradeId,
+            amount,
+            result,
+            portfolioAfter,
+            imageUrl: undefined
+        };
+
+        // UI Update
+        setTrades(prev => [...prev, newTrade]);
 
     }, [nextTradeAmount, currentPortfolio, multiplier, currentWins, session, dbSessionId, sessionCount, config.capital, currentTradeIndex]);
 
@@ -287,7 +304,7 @@ function App() {
         const isSessionComplete = currentWins >= config.targetWins || trades.length >= config.totalTrades;
         let nextCapital = config.capital;
 
-        if (isSessionComplete && config.autoCompounding) {
+        if (config.autoCompounding && (isSessionComplete || isRiskCritical)) {
             nextCapital = Math.round(currentPortfolio * 100) / 100;
         }
 
@@ -329,67 +346,191 @@ function App() {
         setDbSessionId(null);
     };
 
-    if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-text-primary">Loading...</div>;
+    const handleUploadEvidence = async (tradeIndex: number, file: File) => {
+        if (!session || !trades[tradeIndex] || !trades[tradeIndex].dbId) {
+            console.error("Cannot upload: Missing session or trade DB ID");
+            return;
+        }
+
+        const trade = trades[tradeIndex];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${trade.dbId}-${Date.now()}.${fileExt}`;
+        const filePath = `${session.user.id}/${fileName}`;
+
+        try {
+            const { error: uploadError } = await supabase.storage
+                .from('trade-evidence')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('trade-evidence')
+                .getPublicUrl(filePath);
+
+            // Update DB
+            const { error: updateError } = await supabase
+                .from('trades')
+                .update({ image_url: publicUrl })
+                .eq('id', trade.dbId);
+
+            if (updateError) {
+                throw updateError;
+            }
+
+            // Update State
+            setTrades(prev => prev.map((t, idx) =>
+                idx === tradeIndex ? { ...t, imageUrl: publicUrl } : t
+            ));
+
+        } catch (error) {
+            console.error('Error uploading evidence:', error);
+            alert('Failed to upload image');
+        }
+    };
+
+    const [showAuth, setShowAuth] = useState(false);
+
+    if (loading) return (
+        <div className="min-h-screen bg-background flex items-center justify-center text-accent">
+            <div className="animate-spin-slow text-4xl">
+                <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full" />
+            </div>
+        </div>
+    );
 
     if (!session) {
-        return <AuthUI />;
+        if (showAuth) {
+            return (
+                <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+                    <div className="w-full max-w-md">
+                        <button
+                            onClick={() => setShowAuth(false)}
+                            className="mb-8 text-sm text-text-secondary hover:text-white flex items-center gap-2 transition-colors"
+                        >
+                            ← Back to Home
+                        </button>
+                        <AuthUI />
+                    </div>
+                </div>
+            );
+        }
+        return <LandingPage onGetStarted={() => setShowAuth(true)} onLogin={() => setShowAuth(true)} />;
     }
 
+    const getPageTitle = () => {
+        switch (currentView) {
+            case 'dashboard': return 'Analytics Dashboard';
+            case 'trademanager': return 'Trade Manager';
+            case 'history': return 'Session Log';
+            case 'settings': return 'Configuration';
+            default: return 'Dashboard';
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-background text-text-primary p-4 md:p-8 flex flex-col gap-8">
-            <header className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-4xl font-black italic tracking-tighter glow-text">TRADE<span className="text-blue-500">MASTER</span></h1>
-                    <p className="text-text-secondary text-xs uppercase font-bold tracking-[0.3em] mt-1 ml-1 opacity-60">Matrix Money Management Pro</p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setShowHistory(true)}
-                            className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors uppercase font-bold tracking-wider"
-                        >
-                            <HistoryIcon className="w-4 h-4" />
-                            History
-                        </button>
-                        <button
-                            onClick={() => supabase.auth.signOut()}
-                            className="text-xs text-red-400 hover:text-red-300 transition-colors uppercase font-bold tracking-wider"
-                        >
-                            Sign Out
-                        </button>
-                    </div>
-                    <div className="hidden md:block text-right">
-                        <p className="text-[10px] text-text-secondary uppercase font-black tracking-widest">Protocol Version</p>
-                        <p className="font-mono text-xs text-blue-400">EXCEL-P_1.0.4</p>
-                    </div>
-                </div>
-            </header>
-
-            <Dashboard
-                currentPortfolio={currentPortfolio}
-                initialCapital={config.capital}
-                targetWins={config.targetWins}
-                currentWins={currentWins}
-                projectedGrowth={projectedGrowth}
-                stopLossLimit={config.stopLossLimit}
-                stopLossEnabled={config.stopLossEnabled}
-                sessionCount={sessionCount}
-                sessionsRequired={sessionsRequired}
-                goalFinalCapital={goalFinalCapital}
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 min-h-0">
-                <div className="lg:col-span-8 flex flex-col gap-8 min-h-0">
-                    <TradeEntry
-                        amount={nextTradeAmount}
-                        onResult={handleTradeResult}
-                        disabled={trades.length >= config.totalTrades || currentWins >= config.targetWins}
-                        isRiskCritical={isRiskCritical}
+        <Layout
+            userEmail={session.user.email}
+            onSignOut={() => supabase.auth.signOut()}
+            onToggleSettings={() => {
+                setCurrentView(v => v === 'settings' ? 'trademanager' : 'settings');
+            }}
+            activeView={currentView}
+            onNavigate={(view) => {
+                if (view === 'history') {
+                    setCurrentView('history');
+                } else {
+                    setCurrentView(view);
+                }
+            }}
+            pageTitle={getPageTitle()}
+        >
+            {/* Dashboard View: Stats + History Table */}
+            {currentView === 'dashboard' && (
+                <div className="flex flex-col gap-6">
+                    <AnalyticsDashboard
+                        session={session}
+                        currentPortfolio={currentPortfolio}
+                        initialCapital={config.capital}
+                        targetWins={config.targetWins}
+                        currentWins={currentWins}
+                        projectedGrowth={projectedGrowth}
+                        stopLossLimit={config.stopLossLimit}
+                        stopLossEnabled={config.stopLossEnabled}
+                        sessionCount={sessionCount}
                     />
-                    <TradeLog trades={trades} onReset={handleReset} />
+                    <div className="glass-panel p-6 rounded-2xl min-h-[300px]">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 rounded-lg bg-accent/10">
+                                <HistoryIcon className="w-5 h-5 text-accent" />
+                            </div>
+                            <h2 className="text-xl font-bold text-white tracking-tight">Recent Sessions</h2>
+                        </div>
+                        <History session={session} isInline={true} />
+                    </div>
                 </div>
+            )}
 
-                <aside className="lg:col-span-4 flex flex-col gap-8 overflow-y-auto">
+            {/* Trade Manager View: Stats + Execution + Config */}
+            {currentView === 'trademanager' && (
+                <>
+                    <Dashboard
+                        currentPortfolio={currentPortfolio}
+                        initialCapital={config.capital}
+                        targetWins={config.targetWins}
+                        currentWins={currentWins}
+                        projectedGrowth={projectedGrowth}
+                        stopLossLimit={config.stopLossLimit}
+                        stopLossEnabled={config.stopLossEnabled}
+                        sessionCount={sessionCount}
+                    />
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
+                        <div className="lg:col-span-8 flex flex-col gap-4 min-h-0">
+                            <TradeEntry
+                                amount={nextTradeAmount}
+                                onResult={handleTradeResult}
+                                disabled={trades.length >= config.totalTrades || currentWins >= config.targetWins}
+                                isRiskCritical={isRiskCritical}
+                            />
+                            <TradeLog
+                                trades={trades}
+                                onReset={handleReset}
+                                onUploadEvidence={handleUploadEvidence}
+                                onViewEvidence={setViewImage}
+                            />
+                        </div>
+
+                        <aside id="calculations-panel" className="lg:col-span-4 flex flex-col gap-4 overflow-y-auto">
+                            <CalculationsPanel
+                                capital={config.capital}
+                                totalTrades={config.totalTrades}
+                                targetWins={config.targetWins}
+                                payout={config.payout}
+                                autoCompounding={config.autoCompounding}
+                                stopLossLimit={config.stopLossLimit}
+                                stopLossEnabled={config.stopLossEnabled}
+                                dailyGoal={config.dailyGoal}
+                                dailyGoalType={config.dailyGoalType}
+                                sessionsRequired={sessionsRequired}
+                                minRequiredCapital={minRequiredCapital}
+                                onUpdate={handleConfigUpdate}
+                            />
+                        </aside>
+                    </div>
+                </>
+            )}
+
+            {/* History View (Sidebar) */}
+            {currentView === 'history' && (
+                <div className="h-full">
+                    <History session={session} />
+                </div>
+            )}
+
+            {/* Settings View */}
+            {currentView === 'settings' && (
+                <div className="max-w-2xl mx-auto">
                     <CalculationsPanel
                         capital={config.capital}
                         totalTrades={config.totalTrades}
@@ -404,11 +545,12 @@ function App() {
                         minRequiredCapital={minRequiredCapital}
                         onUpdate={handleConfigUpdate}
                     />
-                </aside>
-            </div>
+                </div>
+            )}
 
-            {showHistory && <History session={session} onClose={() => setShowHistory(false)} />}
-        </div>
+
+            <ImageModal isOpen={!!viewImage} onClose={() => setViewImage(null)} imageUrl={viewImage} />
+        </Layout>
     );
 }
 

@@ -41,7 +41,7 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
     onUpdate
 }) => {
     return (
-        <section className="glass-panel p-6 rounded-2xl space-y-6">
+        <section className="glass-panel p-4 rounded-2xl space-y-4">
             <div className="flex items-center gap-2 mb-2">
                 <Settings size={18} className="text-blue-400" />
                 <h2 className="text-lg font-semibold uppercase tracking-tight">Configuration</h2>
@@ -112,7 +112,7 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                     onChange={(v) => onUpdate({ payout: v })}
                 />
 
-                <div className="pt-4 border-t border-slate-800 space-y-4">
+                <div className="pt-3 border-t border-slate-800 space-y-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="text-[11px] font-bold text-text-secondary uppercase tracking-widest">Risk Warning</span>
@@ -143,7 +143,7 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                     </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-800 space-y-4">
+                <div className="pt-3 border-t border-slate-800 space-y-3">
                     <div className="flex items-center gap-2">
                         <span className="text-[11px] font-bold text-text-secondary uppercase tracking-widest">Daily Goal</span>
                     </div>

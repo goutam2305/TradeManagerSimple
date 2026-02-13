@@ -20,7 +20,7 @@ export const TradeEntry: React.FC<TradeEntryProps> = ({ amount, onResult, disabl
     };
 
     return (
-        <div className="glass-panel p-8 rounded-2xl flex flex-col items-center gap-6 relative overflow-hidden">
+        <div className="glass-panel p-6 rounded-2xl flex flex-col items-center gap-4 relative overflow-hidden">
             <div className="text-center relative group">
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">Execute Next Trade</p>
                 <button
@@ -28,7 +28,7 @@ export const TradeEntry: React.FC<TradeEntryProps> = ({ amount, onResult, disabl
                     disabled={disabled || amount === 0}
                     className="flex items-center gap-3 hover:scale-105 transition-transform active:scale-95 group/btn"
                 >
-                    <p className="text-5xl font-mono font-black text-white">${amount.toFixed(2)}</p>
+                    <p className="text-4xl font-mono font-black text-white">${amount.toFixed(2)}</p>
                     <div className={`p-2 rounded-lg transition-colors ${copied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800/40 text-slate-500 group-hover/btn:text-blue-400'}`}>
                         {copied ? <Check size={20} className="animate-bounce" /> : <Copy size={20} />}
                     </div>
