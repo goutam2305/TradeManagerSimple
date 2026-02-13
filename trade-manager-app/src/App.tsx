@@ -11,6 +11,7 @@ import { TradingLogic } from './tradingLogic';
 import { LandingPage } from './components/LandingPage';
 import { Layout } from './components/Layout';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
+import { UserProfile } from './components/UserProfile';
 import { History as HistoryIcon } from 'lucide-react';
 import { ImageModal } from './components/ImageModal';
 
@@ -438,6 +439,7 @@ function App() {
             case 'trademanager': return 'Trade Manager';
             case 'history': return 'Session Log';
             case 'settings': return 'Configuration';
+            case 'profile': return 'User Profile';
             default: return 'Dashboard';
         }
     };
@@ -562,6 +564,11 @@ function App() {
                 </div>
             )}
 
+
+            {/* User Profile View */}
+            {currentView === 'profile' && (
+                <UserProfile session={session} />
+            )}
 
             <ImageModal isOpen={!!viewImage} onClose={() => setViewImage(null)} imageUrl={viewImage} />
         </Layout>

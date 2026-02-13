@@ -127,11 +127,14 @@ export const Layout: React.FC<LayoutProps> = ({
                 </nav>
 
                 <div className="p-4 border-t border-white/5">
-                    <div className="p-4 rounded-xl bg-surface/50 border border-white/5 hover:border-white/10 transition-colors group cursor-pointer relative overflow-hidden">
+                    <div
+                        onClick={() => onNavigate('profile')}
+                        className="p-4 rounded-xl bg-surface/50 border border-white/5 hover:border-white/10 transition-colors group cursor-pointer relative overflow-hidden"
+                    >
                         <div className="absolute inset-0 bg-gradient-to-tr from-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                         <div className="flex items-center gap-3 relative z-10">
-                            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center border border-white/10">
-                                <User className="w-5 h-5 text-white" />
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center border transition-colors ${activeView === 'profile' ? 'bg-accent border-accent' : 'bg-slate-700 border-white/10'}`}>
+                                <User className={`w-5 h-5 ${activeView === 'profile' ? 'text-background' : 'text-white'}`} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-bold text-white truncate">{userEmail?.split('@')[0] || 'Trader'}</p>
@@ -139,7 +142,10 @@ export const Layout: React.FC<LayoutProps> = ({
                             </div>
                         </div>
                         <button
-                            onClick={onSignOut}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onSignOut();
+                            }}
                             className="mt-3 w-full py-2 flex items-center justify-center gap-2 text-xs font-bold text-red-400 hover:text-red-300 transition-colors uppercase tracking-wider bg-red-500/10 rounded-lg hover:bg-red-500/20 relative z-10"
                         >
                             <LogOut className="w-3 h-3" /> Sign Out
