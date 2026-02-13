@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, BarChart2, CheckCircle2, Layout, Shield } from 'lucide-react';
+import { ArrowRight, BarChart2, LayoutDashboard, Shield } from 'lucide-react';
 
 interface LandingPageProps {
     onGetStarted: () => void;
@@ -111,7 +111,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
                 <div className="grid md:grid-cols-3 gap-8">
                     {[
                         { icon: BarChart2, title: "Real-time Analytics", desc: "Every trade is calculated instantly. Get precise metrics on your expectancy, average R-multiple, and drawdown." },
-                        { icon: Layout, title: "Session Manager", desc: "Optimize your trading hours. Identify which market sessions and volatility profiles yield your highest win rates." },
+                        { icon: LayoutDashboard, title: "Session Manager", desc: "Optimize your trading hours. Identify which market sessions and volatility profiles yield your highest win rates." },
                         { icon: Shield, title: "Risk Calculator", desc: "Stop over-leveraging. Our advanced position sizer calculates exact risk based on your current balance and volatility." }
                     ].map((feature, i) => (
                         <div key={i} className="p-8 rounded-2xl bg-panel border border-border/50 hover:border-accent/30 transition-all hover:translate-y-1 group">
