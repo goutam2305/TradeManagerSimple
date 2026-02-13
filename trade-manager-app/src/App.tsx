@@ -44,6 +44,8 @@ function App() {
 
     const [trades, setTrades] = useState<TradeRecord[]>([]);
     const [sessionCount, setSessionCount] = useState(1);
+    const [userName, setUserName] = useState<string>('');
+    const [avatarUrl, setAvatarUrl] = useState<string>('');
 
     // View State with Persistence
     const [currentView, setCurrentView] = useState(() => {
@@ -90,7 +92,9 @@ function App() {
                     payout: configData.payout,
                     autoCompounding: configData.auto_compounding,
                     dailyGoal: configData.daily_goal || prev.dailyGoal,
-                    dailyGoalType: configData.daily_goal_type || prev.dailyGoalType
+                    dailyGoalType: (configData.daily_goal_type === 'percentage' || configData.daily_goal_type === '%') ? '%' :
+                        (configData.daily_goal_type === 'amount' || configData.daily_goal_type === '$') ? '$' :
+                            (configData.daily_goal_type || prev.dailyGoalType)
                 }));
             }
 
@@ -137,6 +141,17 @@ function App() {
                 setDbSessionId(null); // Will be created on first trade
                 setTrades([]);
             }
+
+            // 3. Load User Profile for Name Sync
+            const { data: profileData } = await supabase
+                .from('user_profiles')
+                .select('full_name, avatar_url')
+                .eq('id', session.user.id)
+                .single();
+
+            const displayName = profileData?.full_name || session.user.user_metadata?.full_name || '';
+            setUserName(displayName);
+            setAvatarUrl(profileData?.avatar_url || '');
         };
 
         loadData();
@@ -267,37 +282,37 @@ function App() {
 
     }, [nextTradeAmount, currentPortfolio, multiplier, currentWins, session, dbSessionId, sessionCount, config.capital, currentTradeIndex]);
 
-    const handleConfigUpdate = async (newParams: Partial<typeof config>) => {
+    const handleConfigUpdate = (newParams: Partial<typeof config>) => {
         const structuralFields = ['capital', 'totalTrades', 'targetWins', 'payout'];
         const isStructuralChange = Object.keys(newParams).some(key => structuralFields.includes(key));
 
-        setConfig(prev => {
-            const updated = { ...prev, ...newParams };
-
-            // Sync config to DB
-            if (session) {
-                supabase.from('protected_configs').upsert({
-                    user_id: session.user.id,
-                    capital: updated.capital,
-                    total_trades: updated.totalTrades,
-                    target_wins: updated.targetWins,
-                    payout: updated.payout,
-                    auto_compounding: updated.autoCompounding,
-                    daily_goal: updated.dailyGoal,
-                    daily_goal_type: updated.dailyGoalType
-                }).then(({ error }) => {
-                    if (error) console.error("Config sync error", error);
-                });
-            }
-
-            return updated;
-        });
+        setConfig(prev => ({ ...prev, ...newParams }));
 
         if (isStructuralChange) {
             if (dbSessionId) {
                 setTrades([]);
                 setDbSessionId(null);
             }
+        }
+    };
+
+    const handleSaveConfig = async () => {
+        if (!session) return;
+
+        const { error } = await supabase.from('protected_configs').upsert({
+            user_id: session.user.id,
+            capital: config.capital,
+            total_trades: config.totalTrades,
+            target_wins: config.targetWins,
+            payout: config.payout,
+            auto_compounding: config.autoCompounding,
+            daily_goal: config.dailyGoal,
+            daily_goal_type: config.dailyGoalType
+        }, { onConflict: 'user_id' });
+
+        if (error) {
+            console.error("Config save error", error);
+            throw error;
         }
     };
 
@@ -446,7 +461,9 @@ function App() {
 
     return (
         <Layout
+            userName={userName}
             userEmail={session.user.email}
+            avatarUrl={avatarUrl}
             onSignOut={handleSignOut}
             onToggleSettings={() => {
                 setCurrentView(v => v === 'settings' ? 'trademanager' : 'settings');
@@ -531,6 +548,7 @@ function App() {
                                 sessionsRequired={sessionsRequired}
                                 minRequiredCapital={minRequiredCapital}
                                 onUpdate={handleConfigUpdate}
+                                onSave={handleSaveConfig}
                             />
                         </aside>
                     </div>
@@ -560,6 +578,7 @@ function App() {
                         sessionsRequired={sessionsRequired}
                         minRequiredCapital={minRequiredCapital}
                         onUpdate={handleConfigUpdate}
+                        onSave={handleSaveConfig}
                     />
                 </div>
             )}
@@ -567,7 +586,13 @@ function App() {
 
             {/* User Profile View */}
             {currentView === 'profile' && (
-                <UserProfile session={session} />
+                <UserProfile
+                    session={session}
+                    onProfileUpdate={(data) => {
+                        setUserName(data.full_name);
+                        setAvatarUrl(data.avatar_url || '');
+                    }}
+                />
             )}
 
             <ImageModal isOpen={!!viewImage} onClose={() => setViewImage(null)} imageUrl={viewImage} />

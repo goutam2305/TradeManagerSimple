@@ -2,8 +2,9 @@
 import { useEffect, useState, Fragment, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { Session } from '@supabase/supabase-js';
-import { Clock, ChevronDown, ChevronUp, ImageIcon, Upload, Clipboard, Trash2, FileDown } from 'lucide-react';
+import { Clock, ChevronDown, ChevronUp, ImageIcon, Upload, Clipboard, Trash2, FileDown, Loader2 } from 'lucide-react';
 import { ImageModal } from './ImageModal';
+import * as XLSX from 'xlsx';
 
 interface HistoryProps {
     session: Session;
@@ -43,9 +44,91 @@ export const History = ({ session, isInline = false }: HistoryProps) => {
     const [viewImage, setViewImage] = useState<string | null>(null);
     const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
     const [deleting, setDeleting] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const selectedTradeIdx = useRef<{ sessionId: string, tradeIndex: number, tradeId: string } | null>(null);
+
+    const handleExportReport = async () => {
+        setExporting(true);
+        try {
+            // 1. Determine target sessions
+            const targetSessions = selectedSessionIds.length > 0
+                ? history.filter(s => selectedSessionIds.includes(s.id))
+                : history;
+
+            if (targetSessions.length === 0) {
+                alert('No sessions available to export.');
+                return;
+            }
+
+            const targetIds = targetSessions.map(s => s.id);
+
+            // 2. Fetch all trades for these sessions
+            const { data: allTrades, error: tradesError } = await supabase
+                .from('trades')
+                .select('*')
+                .in('session_id', targetIds)
+                .order('created_at', { ascending: true });
+
+            if (tradesError) throw tradesError;
+
+            // 3. Format Session Summary Data
+            const sessionData = targetSessions.map(s => {
+                const profit = s.final_capital - s.initial_capital;
+                const winRate = s.total_trades > 0
+                    ? ((s.total_wins / s.total_trades) * 100).toFixed(1) + '%'
+                    : '0%';
+
+                return {
+                    'Session #': s.session_number,
+                    'Date': new Date(s.created_at).toLocaleDateString(),
+                    'Start Time': new Date(s.created_at).toLocaleTimeString(),
+                    'End Time': s.completed_at ? new Date(s.completed_at).toLocaleTimeString() : '-',
+                    'Initial Capital': s.initial_capital,
+                    'Final Capital': s.final_capital,
+                    'Trades': s.total_trades,
+                    'Wins': s.total_wins,
+                    'Win Rate': winRate,
+                    'Outcome': s.outcome,
+                    'Net P&L': profit.toFixed(2)
+                };
+            });
+
+            // 4. Format Trade Details Data
+            const tradeData = allTrades.map(t => {
+                const session = targetSessions.find(s => s.id === t.session_id);
+                return {
+                    'Session #': session?.session_number || '?',
+                    'Trade #': t.trade_index + 1,
+                    'Time': new Date(t.created_at).toLocaleTimeString(),
+                    'Amount': t.amount,
+                    'Result': t.result,
+                    'Equity After': t.portfolio_after,
+                    'Evidence URL': t.image_url || 'None'
+                };
+            });
+
+            // 5. Create Excel Workbook
+            const wb = XLSX.utils.book_new();
+
+            const wsSessions = XLSX.utils.json_to_sheet(sessionData);
+            const wsTrades = XLSX.utils.json_to_sheet(tradeData);
+
+            XLSX.utils.book_append_sheet(wb, wsSessions, 'Sessions Summary');
+            XLSX.utils.book_append_sheet(wb, wsTrades, 'Trade Details');
+
+            // 6. Download
+            const timestamp = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `TradeFlow_Report_${timestamp}.xlsx`);
+
+        } catch (error) {
+            console.error('Error exporting report:', error);
+            alert('Failed to export report. Please try again.');
+        } finally {
+            setExporting(false);
+        }
+    };
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -496,11 +579,19 @@ export const History = ({ session, isInline = false }: HistoryProps) => {
                             </button>
                         )}
                         <button
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 text-slate-400 hover:text-white border border-white/10 transition-all text-sm font-bold opacity-50 cursor-not-allowed"
-                            title="Coming Soon"
+                            onClick={handleExportReport}
+                            disabled={exporting || history.length === 0}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all text-sm font-bold ${exporting || history.length === 0
+                                    ? 'bg-white/5 text-slate-500 cursor-not-allowed opacity-50'
+                                    : 'bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20'
+                                }`}
                         >
-                            <FileDown size={16} />
-                            EXPORT REPORT
+                            {exporting ? (
+                                <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                                <FileDown size={16} />
+                            )}
+                            {exporting ? 'EXPORTING...' : 'EXPORT REPORT'}
                         </button>
                     </div>
                 </div>

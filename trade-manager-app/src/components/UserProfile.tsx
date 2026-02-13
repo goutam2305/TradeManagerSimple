@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Mail, Globe, Briefcase, TrendingUp, Save, Loader2, CheckCircle, PenSquare } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Session } from '@supabase/supabase-js';
 
 interface UserProfileProps {
     session: Session;
+    onProfileUpdate?: (data: ProfileData) => void;
 }
 
 interface ProfileData {
@@ -13,9 +14,10 @@ interface ProfileData {
     experience_level: string;
     trading_style: string;
     bio: string;
+    avatar_url?: string;
 }
 
-export const UserProfile: React.FC<UserProfileProps> = ({ session }) => {
+export const UserProfile: React.FC<UserProfileProps> = ({ session, onProfileUpdate }) => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -46,7 +48,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ session }) => {
                     country: data.country || '',
                     experience_level: data.experience_level || 'Beginner',
                     trading_style: data.trading_style || 'Day Trader',
-                    bio: data.bio || ''
+                    bio: data.bio || '',
+                    avatar_url: data.avatar_url || ''
                 });
             }
         } catch (error) {
@@ -71,11 +74,63 @@ export const UserProfile: React.FC<UserProfileProps> = ({ session }) => {
 
             if (error) throw error;
 
+            if (onProfileUpdate) {
+                onProfileUpdate(profile);
+            }
+
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
         } catch (error) {
             console.error('Error saving profile:', error);
             alert('Failed to save profile. Please make sure you have created the user_profiles table in your Supabase dashboard.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            if (!e.target.files || e.target.files.length === 0) return;
+            const file = e.target.files[0];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${session.user.id}/${Math.random()}.${fileExt}`;
+
+            setSaving(true);
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(fileName, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(fileName);
+
+            const newProfile = { ...profile, avatar_url: publicUrl };
+            setProfile(newProfile);
+
+            // Persist immediately
+            const { error: updateError } = await supabase
+                .from('user_profiles')
+                .upsert({
+                    id: session.user.id,
+                    ...newProfile,
+                    updated_at: new Date().toISOString()
+                });
+
+            if (updateError) throw updateError;
+
+            if (onProfileUpdate) {
+                onProfileUpdate(newProfile);
+            }
+
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        } catch (error) {
+            console.error('Error uploading avatar:', error);
+            alert('Error uploading avatar: ' + (error instanceof Error ? error.message : 'Unknown error'));
         } finally {
             setSaving(false);
         }
@@ -98,11 +153,31 @@ export const UserProfile: React.FC<UserProfileProps> = ({ session }) => {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[80px] pointer-events-none" />
 
                     <div className="relative">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleAvatarUpload}
+                            accept="image/*"
+                            className="hidden"
+                        />
                         <div className="w-32 h-32 rounded-full bg-slate-800 border-2 border-accent/30 flex items-center justify-center shadow-2xl relative group-hover:border-accent transition-all duration-500">
-                            <User className="w-16 h-16 text-accent/50 group-hover:text-accent transition-all duration-500" />
-                            <div className="absolute -bottom-2 -right-2 bg-accent text-background p-2 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform">
-                                <PenSquare className="w-4 h-4" />
+                            <div className="absolute inset-0 rounded-full overflow-hidden">
+                                {profile.avatar_url ? (
+                                    <img
+                                        src={profile.avatar_url}
+                                        alt="Avatar"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <User className="w-16 h-16 text-accent/50 group-hover:text-accent transition-all duration-500" />
+                                )}
                             </div>
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="absolute -bottom-2 -right-2 bg-accent text-background p-2 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform z-10"
+                            >
+                                <PenSquare className="w-4 h-4" />
+                            </button>
                         </div>
                     </div>
 
