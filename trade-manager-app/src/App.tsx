@@ -389,6 +389,20 @@ function App() {
         }
     };
 
+    const handleSignOut = async () => {
+        try {
+            await supabase.auth.signOut();
+            setSession(null);
+            setDbSessionId(null);
+            setTrades([]);
+            setCurrentView('trademanager');
+        } catch (error) {
+            console.error('Error signing out:', error);
+            // Fallback: manually clear session
+            setSession(null);
+        }
+    };
+
     const [showAuth, setShowAuth] = useState(false);
 
     if (loading) return (
@@ -431,7 +445,7 @@ function App() {
     return (
         <Layout
             userEmail={session.user.email}
-            onSignOut={() => supabase.auth.signOut()}
+            onSignOut={handleSignOut}
             onToggleSettings={() => {
                 setCurrentView(v => v === 'settings' ? 'trademanager' : 'settings');
             }}
