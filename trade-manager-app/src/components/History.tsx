@@ -378,9 +378,9 @@ export const History = ({ session, isInline = false }: HistoryProps) => {
                 </div>
             ) : (
                 <table className="w-full text-left text-sm relative border-collapse">
-                    <thead className="bg-surface/50 border-b border-white/5 sticky top-0 z-10 backdrop-blur-md">
-                        <tr>
-                            <th className="px-6 py-4 w-10">
+                    <thead className="sticky top-0 z-10 border-b border-white/10 shadow-xl">
+                        <tr className="bg-slate-900/95 backdrop-blur-sm">
+                            <th className="px-6 py-5 w-10">
                                 <input
                                     type="checkbox"
                                     checked={selectedSessionIds.length === history.length && history.length > 0}
@@ -388,18 +388,18 @@ export const History = ({ session, isInline = false }: HistoryProps) => {
                                     className="rounded border-white/20 bg-white/5 text-accent focus:ring-accent cursor-pointer"
                                 />
                             </th>
-                            <th className="px-6 py-4 font-bold text-text-secondary uppercase tracking-wider text-[10px]">Session</th>
-                            <th className="px-6 py-4 font-bold text-text-secondary uppercase tracking-wider text-[10px]">Date</th>
+                            <th className="px-6 py-5 font-black text-accent uppercase tracking-widest text-[10px]">Session</th>
+                            <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px]">Date</th>
                             {!isInline && (
                                 <>
-                                    <th className="px-6 py-4 font-bold text-text-secondary uppercase tracking-wider text-[10px]">Start</th>
-                                    <th className="px-6 py-4 font-bold text-text-secondary uppercase tracking-wider text-[10px]">End</th>
+                                    <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px]">Start</th>
+                                    <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px]">End</th>
                                 </>
                             )}
-                            <th className="px-6 py-4 font-bold text-text-secondary uppercase tracking-wider text-[10px] text-center">Trades</th>
-                            <th className="px-6 py-4 font-bold text-text-secondary uppercase tracking-wider text-[10px] text-center">Win Rate</th>
-                            <th className="px-6 py-4 font-bold text-text-secondary uppercase tracking-wider text-[10px] text-center">Outcome</th>
-                            <th className="px-6 py-4 font-bold text-text-secondary uppercase tracking-wider text-[10px] text-right">Net P&L</th>
+                            <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px] text-center">Trades</th>
+                            <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px] text-center">Win Rate</th>
+                            <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px] text-center">Outcome</th>
+                            <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px] text-right">Net P&L</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -581,17 +581,17 @@ export const History = ({ session, isInline = false }: HistoryProps) => {
                         <button
                             onClick={handleExportReport}
                             disabled={exporting || history.length === 0}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all text-sm font-bold ${exporting || history.length === 0
-                                    ? 'bg-white/5 text-slate-500 cursor-not-allowed opacity-50'
-                                    : 'bg-accent/10 text-accent hover:bg-accent/20 border border-accent/20'
+                            title="Export Report"
+                            className={`p-2.5 rounded-xl transition-all shadow-lg active:scale-95 ${exporting || history.length === 0
+                                ? 'bg-white/5 text-slate-500 cursor-not-allowed opacity-50'
+                                : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 shadow-emerald-500/10'
                                 }`}
                         >
                             {exporting ? (
-                                <Loader2 size={16} className="animate-spin" />
+                                <Loader2 size={18} className="animate-spin" />
                             ) : (
-                                <FileDown size={16} />
+                                <FileDown size={18} />
                             )}
-                            {exporting ? 'EXPORTING...' : 'EXPORT REPORT'}
                         </button>
                     </div>
                 </div>

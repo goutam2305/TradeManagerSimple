@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LayoutDashboard, Minimize2, History as HistoryIcon, Settings, LogOut, User, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Minimize2, History as HistoryIcon, Settings, LogOut, User, Menu, X, Calculator } from 'lucide-react';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -30,6 +30,7 @@ export const Layout: React.FC<LayoutProps> = ({
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'trademanager', label: 'Trade Manager', icon: Minimize2 },
         { id: 'history', label: 'Session Log', icon: HistoryIcon },
+        { id: 'calculator', label: 'Calculator', icon: Calculator },
         { id: 'settings', label: 'Settings', icon: Settings, action: onToggleSettings },
     ];
 

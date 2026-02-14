@@ -14,6 +14,7 @@ import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { UserProfile } from './components/UserProfile';
 import { History as HistoryIcon } from 'lucide-react';
 import { ImageModal } from './components/ImageModal';
+import { Calculator } from './components/Calculator';
 
 interface TradeRecord {
     id: number; // Timestamp
@@ -44,6 +45,7 @@ function App() {
 
     const [trades, setTrades] = useState<TradeRecord[]>([]);
     const [sessionCount, setSessionCount] = useState(1);
+    const [todaySessionCount, setTodaySessionCount] = useState(0);
     const [userName, setUserName] = useState<string>('');
     const [avatarUrl, setAvatarUrl] = useState<string>('');
 
@@ -75,8 +77,7 @@ function App() {
         if (!session) return;
 
         const loadData = async () => {
-
-            // Initial Load Config
+            // 1. Initial Load Config
             const { data: configData } = await supabase
                 .from('protected_configs')
                 .select('*')
@@ -108,6 +109,19 @@ function App() {
                 .limit(1)
                 .single();
 
+            // Load today's count separately
+            const startOfToday = new Date();
+            startOfToday.setHours(0, 0, 0, 0);
+
+            const { count: sessionCountToday } = await supabase
+                .from('sessions')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', session.user.id)
+                .eq('is_active', false)
+                .gte('created_at', startOfToday.toISOString());
+
+            setTodaySessionCount(sessionCountToday || 0);
+
             if (activeSession) {
                 setDbSessionId(activeSession.id);
                 setSessionCount(activeSession.session_number);
@@ -131,14 +145,17 @@ function App() {
                     setTrades(mappedTrades);
                 }
             } else {
-                // Determine next session number
-                const { count } = await supabase
+                // Determine next session number (Global)
+                const { data: maxSession } = await supabase
                     .from('sessions')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('user_id', session.user.id);
+                    .select('session_number')
+                    .eq('user_id', session.user.id)
+                    .order('session_number', { ascending: false })
+                    .limit(1)
+                    .single();
 
-                setSessionCount((count || 0) + 1);
-                setDbSessionId(null); // Will be created on first trade
+                setSessionCount((maxSession?.session_number || 0) + 1);
+                setDbSessionId(null);
                 setTrades([]);
             }
 
@@ -344,18 +361,48 @@ function App() {
         }
 
         if (session) {
-            // Get next session number
-            const { count } = await supabase
+            // Get next session number (Global MAX + 1)
+            const { data: maxSession } = await supabase
+                .from('sessions')
+                .select('session_number')
+                .eq('user_id', session.user.id)
+                .order('session_number', { ascending: false })
+                .limit(1)
+                .single();
+
+            setSessionCount((maxSession?.session_number || 0) + 1);
+
+            // Update Today's Count
+            const startOfToday = new Date();
+            startOfToday.setHours(0, 0, 0, 0);
+
+            const { count: sessionCountToday } = await supabase
                 .from('sessions')
                 .select('*', { count: 'exact', head: true })
-                .eq('user_id', session.user.id);
+                .eq('user_id', session.user.id)
+                .eq('is_active', false)
+                .gte('created_at', startOfToday.toISOString());
 
-            setSessionCount((count || 0) + 1);
+            setTodaySessionCount(sessionCountToday || 0);
         }
 
         // Update config if compounding
         if (nextCapital !== config.capital) {
             handleConfigUpdate({ capital: nextCapital });
+
+            // Auto-save to Supabase so it persists on reload
+            if (session) {
+                await supabase.from('protected_configs').upsert({
+                    user_id: session.user.id,
+                    capital: nextCapital,
+                    total_trades: config.totalTrades,
+                    target_wins: config.targetWins,
+                    payout: config.payout,
+                    auto_compounding: config.autoCompounding,
+                    daily_goal: config.dailyGoal,
+                    daily_goal_type: config.dailyGoalType
+                }, { onConflict: 'user_id' });
+            }
         }
 
         setTrades([]);
@@ -453,6 +500,7 @@ function App() {
             case 'dashboard': return 'Analytics Dashboard';
             case 'trademanager': return 'Trade Manager';
             case 'history': return 'Session Log';
+            case 'calculator': return 'Compound Calculator';
             case 'settings': return 'Configuration';
             case 'profile': return 'User Profile';
             default: return 'Dashboard';
@@ -515,7 +563,8 @@ function App() {
                         projectedGrowth={projectedGrowth}
                         stopLossLimit={config.stopLossLimit}
                         stopLossEnabled={config.stopLossEnabled}
-                        sessionCount={sessionCount}
+                        sessionCount={todaySessionCount + 1}
+                        sessionsRequired={sessionsRequired}
                     />
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
@@ -559,6 +608,13 @@ function App() {
             {currentView === 'history' && (
                 <div className="h-full">
                     <History session={session} />
+                </div>
+            )}
+
+            {/* Calculator View */}
+            {currentView === 'calculator' && (
+                <div className="h-full">
+                    <Calculator />
                 </div>
             )}
 
