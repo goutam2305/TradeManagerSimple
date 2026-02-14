@@ -4,8 +4,12 @@ import { BarChart2, Mail, Lock, User, ArrowRight, Loader2, AlertCircle, ArrowLef
 
 type AuthView = 'login' | 'signup' | 'forgot_password';
 
-export const AuthUI = () => {
-    const [view, setView] = useState<AuthView>('login');
+interface AuthUIProps {
+    initialView?: AuthView;
+}
+
+export const AuthUI = ({ initialView = 'login' }: AuthUIProps) => {
+    const [view, setView] = useState<AuthView>(initialView);
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

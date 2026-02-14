@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, BarChart2, Zap, Layout, Target } from 'lucide-react';
+import { Zap, Layout, Target } from 'lucide-react';
 
 interface FeaturesPageProps {
     onBack: () => void;
@@ -23,26 +23,7 @@ const imageVariant = {
 
 export const FeaturesPage: React.FC<FeaturesPageProps> = ({ onBack }) => {
     return (
-        <div className="min-h-screen bg-background text-text-primary overflow-x-hidden selection:bg-accent selection:text-white pb-20 grid-background">
-            {/* Navigation */}
-            <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-background/80 backdrop-blur-md">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-blue-600 flex items-center justify-center">
-                            <BarChart2 className="w-5 h-5 text-white" />
-                        </div>
-                        <span className="text-xl font-bold tracking-tight">TRADE<span className="text-accent">FLOW</span></span>
-                    </div>
-                    <button
-                        onClick={onBack}
-                        className="flex items-center gap-2 text-sm font-medium text-text-secondary hover:text-white transition-colors"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Back to Home
-                    </button>
-                </div>
-            </nav>
-
+        <div className="relative pb-20">
             {/* Hero Section */}
             <section className="pt-32 pb-20 px-6 relative">
                 <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-accent/20 rounded-full blur-[120px] opacity-30 pointer-events-none" />

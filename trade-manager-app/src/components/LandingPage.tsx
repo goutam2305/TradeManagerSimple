@@ -4,12 +4,10 @@ import { motion } from 'framer-motion';
 
 interface LandingPageProps {
     onGetStarted: () => void;
-    onLogin: () => void;
-    onAbout: () => void;
-    onFeatures: () => void;
+    onDemo: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onAbout, onFeatures }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDemo }) => {
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -34,38 +32,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
     };
 
     return (
-        <div className="min-h-screen bg-background text-text-primary font-sans selection:bg-accent selection:text-white overflow-hidden grid-background">
-            {/* Navbar */}
-            <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-background/80 backdrop-blur-md">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-blue-600 flex items-center justify-center">
-                            <BarChart2 className="w-5 h-5 text-white" />
-                        </div>
-                        <span className="text-xl font-bold tracking-tight">TRADE<span className="text-accent">FLOW</span></span>
-                    </div>
-                    <div className="hidden md:flex items-center gap-8 text-sm font-medium text-text-secondary">
-                        <button onClick={onFeatures} className="hover:text-white transition-colors uppercase tracking-widest text-[10px]">Features</button>
-                        <a href="#" className="hover:text-white transition-colors uppercase tracking-widest text-[10px]">Pricing</a>
-                        <button onClick={onAbout} className="hover:text-white transition-colors uppercase tracking-widest text-[10px]">About</button>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={onLogin}
-                            className="text-[10px] font-bold text-text-secondary hover:text-white transition-colors uppercase tracking-widest"
-                        >
-                            Log In
-                        </button>
-                        <button
-                            onClick={onGetStarted}
-                            className="bg-accent hover:bg-accent-hover text-background px-4 py-2 rounded-lg text-[10px] font-black transition-all hover:scale-105 uppercase tracking-widest animate-pulse-glow"
-                        >
-                            Start Free Trial
-                        </button>
-                    </div>
-                </div>
-            </nav>
-
+        <div className="relative">
             {/* Hero Section */}
             <div className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-6">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full opacity-30 pointer-events-none">
@@ -100,7 +67,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                         >
                             Get Started for Free
                         </button>
-                        <button className="w-full sm:w-auto px-10 py-5 rounded-xl bg-surface/50 border border-white/10 hover:border-accent/50 text-white font-bold text-lg transition-all flex items-center justify-center gap-2 group backdrop-blur-sm uppercase tracking-wider">
+                        <button
+                            onClick={onDemo}
+                            className="w-full sm:w-auto px-10 py-5 rounded-xl bg-surface/50 border border-white/10 hover:border-accent/50 text-white font-bold text-lg transition-all flex items-center justify-center gap-2 group backdrop-blur-sm uppercase tracking-wider"
+                        >
                             View Live Demo
                             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </button>
@@ -197,30 +167,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
                     </button>
 
                     <div className="mt-8 text-sm text-text-secondary/50 font-bold uppercase tracking-[0.3em] relative z-10">
-                        No Credit Card Required • Instant Setup
+                        Secure Checkout • Instant Setup
                     </div>
                 </motion.div>
             </div>
-
-            {/* Footer */}
-            <footer className="border-t border-white/5 py-16 px-6">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                            <BarChart2 className="w-6 h-6 text-accent" />
-                        </div>
-                        <span className="text-2xl font-black tracking-tighter">TRADE<span className="text-accent">FLOW</span></span>
-                    </div>
-                    <div className="flex gap-8 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">
-                        <a href="#" className="hover:text-accent transition-colors">Privacy</a>
-                        <a href="#" className="hover:text-accent transition-colors">Terms</a>
-                        <a href="#" className="hover:text-accent transition-colors">Security</a>
-                    </div>
-                    <div className="text-xs font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
-                        © 2024 TradeFlow Analytics <span className="w-1 h-1 rounded-full bg-text-secondary/30" /> ALL SYSTEMS OPERATIONAL <span className="text-success animate-pulse">●</span>
-                    </div>
-                </div>
-            </footer>
         </div>
     );
 };

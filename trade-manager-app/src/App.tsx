@@ -16,8 +16,13 @@ import { History as HistoryIcon } from 'lucide-react';
 import { ImageModal } from './components/ImageModal';
 import { Calculator } from './components/Calculator';
 import { UpdatePassword } from './components/UpdatePassword';
-import { AboutPage } from './components/AboutPage';
+
 import { FeaturesPage } from './components/FeaturesPage';
+import { DemoPage } from './components/DemoPage';
+import { PublicLayout } from './components/PublicLayout';
+import { PrivacyPage } from './components/PrivacyPage';
+import { TermsPage } from './components/TermsPage';
+import { SecurityPage } from './components/SecurityPage';
 
 interface TradeRecord {
     id: number; // Timestamp
@@ -480,9 +485,17 @@ function App() {
         }
     };
 
-    const [showAuth, setShowAuth] = useState(false);
-    const [showAboutPage, setShowAboutPage] = useState(false);
+    const [authView, setAuthView] = useState<'login' | 'signup' | null>(null);
     const [showFeaturesPage, setShowFeaturesPage] = useState(false);
+    const [showDemoPage, setShowDemoPage] = useState(false);
+    const [legalPageView, setLegalPageView] = useState<'privacy' | 'terms' | 'security' | null>(null);
+
+    const closePublicPages = () => {
+        setShowFeaturesPage(false);
+        setShowDemoPage(false);
+        setLegalPageView(null);
+        setAuthView(null);
+    };
 
     if (loading) return (
         <div className="min-h-screen bg-background flex items-center justify-center text-accent">
@@ -491,15 +504,57 @@ function App() {
             </div>
         </div>
     );
-
-    // About Page (Public/Accessible without login)
-    if (showAboutPage) {
-        return <AboutPage onBack={() => setShowAboutPage(false)} />;
+    // Legal Pages (Public)
+    if (legalPageView) {
+        return (
+            <PublicLayout
+                onGetStarted={() => { setAuthView('signup'); setLegalPageView(null); }}
+                onLogin={() => { setAuthView('login'); setLegalPageView(null); }}
+                onFeatures={() => { setShowFeaturesPage(true); setLegalPageView(null); }}
+                onHome={closePublicPages}
+                onPrivacy={() => setLegalPageView('privacy')}
+                onTerms={() => setLegalPageView('terms')}
+                onSecurity={() => setLegalPageView('security')}
+            >
+                {legalPageView === 'privacy' && <PrivacyPage />}
+                {legalPageView === 'terms' && <TermsPage />}
+                {legalPageView === 'security' && <SecurityPage />}
+            </PublicLayout>
+        );
     }
 
     // Features Page (Public)
     if (showFeaturesPage) {
-        return <FeaturesPage onBack={() => setShowFeaturesPage(false)} />;
+        return (
+            <PublicLayout
+                onGetStarted={() => { setAuthView('signup'); setShowFeaturesPage(false); }}
+                onLogin={() => { setAuthView('login'); setShowFeaturesPage(false); }}
+                onFeatures={() => setShowFeaturesPage(true)}
+                onHome={closePublicPages}
+                onPrivacy={() => setLegalPageView('privacy')}
+                onTerms={() => setLegalPageView('terms')}
+                onSecurity={() => setLegalPageView('security')}
+            >
+                <FeaturesPage onBack={closePublicPages} />
+            </PublicLayout>
+        );
+    }
+
+    // Demo Page (Public)
+    if (showDemoPage) {
+        return (
+            <PublicLayout
+                onGetStarted={() => { setAuthView('signup'); setShowDemoPage(false); }}
+                onLogin={() => { setAuthView('login'); setShowDemoPage(false); }}
+                onFeatures={() => { setShowFeaturesPage(true); setShowDemoPage(false); }}
+                onHome={closePublicPages}
+                onPrivacy={() => setLegalPageView('privacy')}
+                onTerms={() => setLegalPageView('terms')}
+                onSecurity={() => setLegalPageView('security')}
+            >
+                <DemoPage onBack={closePublicPages} />
+            </PublicLayout>
+        );
     }
 
     // Password Update View (Authenticated)
@@ -512,22 +567,37 @@ function App() {
     }
 
     if (!session) {
-        if (showAuth) {
+        if (authView) {
             return (
                 <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
                     <div className="w-full max-w-md">
                         <button
-                            onClick={() => setShowAuth(false)}
+                            onClick={() => setAuthView(null)}
                             className="mb-8 text-sm text-text-secondary hover:text-white flex items-center gap-2 transition-colors"
                         >
                             ← Back to Home
                         </button>
-                        <AuthUI />
+                        <AuthUI initialView={authView} />
                     </div>
                 </div>
             );
         }
-        return <LandingPage onGetStarted={() => setShowAuth(true)} onLogin={() => setShowAuth(true)} onAbout={() => setShowAboutPage(true)} onFeatures={() => setShowFeaturesPage(true)} />;
+        return (
+            <PublicLayout
+                onGetStarted={() => setAuthView('signup')}
+                onLogin={() => setAuthView('login')}
+                onFeatures={() => setShowFeaturesPage(true)}
+                onHome={closePublicPages}
+                onPrivacy={() => setLegalPageView('privacy')}
+                onTerms={() => setLegalPageView('terms')}
+                onSecurity={() => setLegalPageView('security')}
+            >
+                <LandingPage
+                    onGetStarted={() => setAuthView('signup')}
+                    onDemo={() => setShowDemoPage(true)}
+                />
+            </PublicLayout>
+        );
     }
 
     const getPageTitle = () => {
