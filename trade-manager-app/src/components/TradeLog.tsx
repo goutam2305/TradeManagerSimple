@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import { format } from 'date-fns';
 import { CheckCircle2, XCircle, RotateCcw, ImageIcon, Upload, Clipboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -56,14 +55,18 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades, onReset, onUploadEvi
     };
 
     return (
-        <section className="glass-panel p-4 rounded-2xl flex-1 flex flex-col min-h-0">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Session Log</h2>
+        <section className="glass-panel p-6 flex-1 flex flex-col min-h-0 relative overflow-hidden group">
+            <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-accent/5 rounded-full blur-[60px] group-hover:bg-accent/10 transition-colors pointer-events-none" />
+
+            <div className="flex justify-between items-center mb-6 relative z-10">
+                <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-bold text-white">Session Log</h2>
+                </div>
                 <button
                     onClick={onReset}
-                    className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-red-400 transition-colors uppercase tracking-widest"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/50 text-red-400 hover:bg-red-500/20 hover:border-red-500 hover:text-red-300 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)] hover:shadow-[0_0_25px_rgba(239,68,68,0.2)] uppercase tracking-widest active:scale-95 group"
                 >
-                    <RotateCcw size={14} />
+                    <RotateCcw size={12} className="group-hover:rotate-180 transition-transform duration-500" />
                     Reset Session
                 </button>
             </div>
@@ -79,53 +82,52 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades, onReset, onUploadEvi
             <div className="overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                 <AnimatePresence initial={false}>
                     {trades.length === 0 && (
-                        <p className="text-center text-slate-600 py-12 text-sm italic">No trades in this session yet.</p>
+                        <div className="flex flex-col items-center justify-center h-40 text-text-secondary opacity-50">
+                            <p className="text-sm italic">No trades in this session yet.</p>
+                        </div>
                     )}
                     {trades.map((trade, idx) => (
                         <motion.div
                             key={trade.id || idx}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="bg-[#1a1a1e] p-3 rounded-xl flex items-center justify-between border border-slate-800/50 group"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-surface/50 p-4 rounded-xl flex items-center justify-between border border-white/5 hover:bg-white/5 transition-colors group"
                         >
                             <div className="flex items-center gap-4">
-                                <span className="text-xs font-black text-slate-600 w-4">{idx + 1}</span>
+                                <span className="text-xs font-bold text-accent w-6">#{idx + 1}</span>
                                 <div>
-                                    <p className="text-[10px] text-text-secondary uppercase font-bold tracking-tighter">Amount</p>
-                                    <p className="font-mono text-sm">${trade.amount.toFixed(2)}</p>
-                                    <p className="text-[10px] text-slate-500 mt-1 font-mono">
-                                        {format(new Date(trade.id), 'HH:mm:ss')}
-                                    </p>
+                                    <p className="text-[10px] text-text-secondary uppercase font-bold tracking-tight mb-0.5">Amount</p>
+                                    <p className="font-bold text-white">${trade.amount.toFixed(2)}</p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-8 relative z-10">
                                 {/* Evidence Section */}
                                 <div className="flex flex-col items-end min-w-[80px]">
-                                    <p className="text-[10px] text-text-secondary uppercase font-bold tracking-tighter mb-1">Evidence</p>
+                                    <p className="text-[9px] text-text-secondary uppercase font-black tracking-[0.2em] mb-2 opacity-50">Intel</p>
                                     {trade.imageUrl ? (
                                         <button
                                             onClick={() => onViewEvidence?.(trade.imageUrl!)}
-                                            className="p-1.5 rounded bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
-                                            title="View Evidence"
+                                            className="p-2 rounded-xl bg-accent/10 text-accent hover:bg-accent/20 transition-all border border-accent/20 shadow-[0_0_15px_rgba(34,211,238,0.2)]"
+                                            title="View Intelligence"
                                         >
                                             <ImageIcon size={14} />
                                         </button>
                                     ) : (
-                                        <div className="flex gap-1">
+                                        <div className="flex gap-2">
                                             <button
                                                 onClick={() => triggerUpload(idx)}
                                                 disabled={!trade.dbId}
-                                                className="p-1.5 rounded bg-surface border border-white/10 text-text-secondary hover:text-white hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                                title="Upload Evidence"
+                                                className="p-2 rounded-xl bg-white/5 border border-white/10 text-text-secondary hover:text-accent hover:bg-accent/10 hover:border-accent/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                title="Upload Intel"
                                             >
                                                 <Upload size={14} />
                                             </button>
                                             <button
                                                 onClick={() => handlePaste(idx)}
                                                 disabled={!trade.dbId}
-                                                className="p-1.5 rounded bg-surface border border-white/10 text-text-secondary hover:text-white hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                                title="Paste from Clipboard"
+                                                className="p-2 rounded-xl bg-white/5 border border-white/10 text-text-secondary hover:text-accent hover:bg-accent/10 hover:border-accent/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                title="Paste Intel"
                                             >
                                                 <Clipboard size={14} />
                                             </button>
@@ -134,22 +136,20 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades, onReset, onUploadEvi
                                 </div>
 
                                 <div className="text-right">
-                                    <p className="text-[10px] text-text-secondary uppercase font-bold tracking-tighter">Result</p>
-                                    <div className="flex justify-end">
-                                        {trade.result === 'W' ? (
-                                            <span className="text-emerald-400 font-bold text-sm flex items-center gap-1">
-                                                WIN <CheckCircle2 size={12} />
-                                            </span>
-                                        ) : (
-                                            <span className="text-red-400 font-bold text-sm flex items-center gap-1">
-                                                LOSS <XCircle size={12} />
-                                            </span>
-                                        )}
-                                    </div>
+                                    <p className="text-[10px] text-text-secondary uppercase font-bold tracking-tight mb-1">Result</p>
+                                    {trade.result === 'W' ? (
+                                        <span className="text-emerald-400 text-xs font-bold uppercase tracking-widest flex items-center gap-1 justify-end">
+                                            WIN <CheckCircle2 size={12} />
+                                        </span>
+                                    ) : (
+                                        <span className="text-red-400 text-xs font-bold uppercase tracking-widest flex items-center gap-1 justify-end">
+                                            LOSS <XCircle size={12} />
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="text-right min-w-[80px]">
-                                    <p className="text-[10px] text-text-secondary uppercase font-bold tracking-tighter">Equity</p>
-                                    <p className="font-mono text-sm font-bold text-blue-400">${trade.portfolioAfter.toFixed(2)}</p>
+                                    <p className="text-[10px] text-text-secondary uppercase font-bold tracking-tight mb-1">Portfolio</p>
+                                    <p className="font-bold text-white">${trade.portfolioAfter.toFixed(2)}</p>
                                 </div>
                             </div>
                         </motion.div>

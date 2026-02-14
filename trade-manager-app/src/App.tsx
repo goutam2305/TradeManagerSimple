@@ -15,6 +15,9 @@ import { UserProfile } from './components/UserProfile';
 import { History as HistoryIcon } from 'lucide-react';
 import { ImageModal } from './components/ImageModal';
 import { Calculator } from './components/Calculator';
+import { UpdatePassword } from './components/UpdatePassword';
+import { AboutPage } from './components/AboutPage';
+import { FeaturesPage } from './components/FeaturesPage';
 
 interface TradeRecord {
     id: number; // Timestamp
@@ -48,6 +51,7 @@ function App() {
     const [todaySessionCount, setTodaySessionCount] = useState(0);
     const [userName, setUserName] = useState<string>('');
     const [avatarUrl, setAvatarUrl] = useState<string>('');
+    const [isProcessing, setIsProcessing] = useState(false);
 
     // View State with Persistence
     const [currentView, setCurrentView] = useState(() => {
@@ -55,7 +59,9 @@ function App() {
     });
 
     useEffect(() => {
-        localStorage.setItem('tradeflow_current_view', currentView);
+        if (currentView !== 'update-password') {
+            localStorage.setItem('tradeflow_current_view', currentView);
+        }
     }, [currentView]);
 
     // Auth & Data Loading
@@ -65,8 +71,11 @@ function App() {
             setLoading(false);
         });
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             setSession(session);
+            if (event === 'PASSWORD_RECOVERY') {
+                setCurrentView('update-password');
+            }
         });
 
         return () => subscription.unsubscribe();
@@ -231,73 +240,78 @@ function App() {
 
     // Actions
     const handleTradeResult = useCallback(async (result: 'W' | 'L') => {
-        if (!session) return;
+        if (!session || isProcessing) return;
 
-        const amount = nextTradeAmount;
-        let portfolioAfter = currentPortfolio;
+        setIsProcessing(true);
+        try {
+            const amount = nextTradeAmount;
+            let portfolioAfter = currentPortfolio;
 
-        if (result === 'W') {
-            portfolioAfter += amount * (multiplier - 1);
-        } else {
-            portfolioAfter -= amount;
-        }
+            if (result === 'W') {
+                portfolioAfter += amount * (multiplier - 1);
+            } else {
+                portfolioAfter -= amount;
+            }
 
-        // DB Sync
-        let currentDbSessionId = dbSessionId;
+            // DB Sync
+            let currentDbSessionId = dbSessionId;
 
-        // Create session if not exists
-        if (!currentDbSessionId) {
-            const { data, error } = await supabase
-                .from('sessions')
-                .insert({
+            // Create session if not exists
+            if (!currentDbSessionId) {
+                const { data, error } = await supabase
+                    .from('sessions')
+                    .insert({
+                        user_id: session.user.id,
+                        session_number: sessionCount,
+                        initial_capital: config.capital,
+                        is_active: true
+                    })
+                    .select()
+                    .single();
+
+                if (data) {
+                    currentDbSessionId = data.id;
+                    setDbSessionId(data.id);
+                } else if (error) {
+                    console.error("Error creating session", error);
+                    return;
+                }
+            }
+
+            let newDbTradeId: string | undefined;
+
+            if (currentDbSessionId) {
+                const { data: insertedTrade } = await supabase.from('trades').insert({
+                    session_id: currentDbSessionId,
                     user_id: session.user.id,
-                    session_number: sessionCount,
-                    initial_capital: config.capital,
-                    is_active: true
-                })
-                .select()
-                .single();
+                    trade_index: currentTradeIndex, // 0-based
+                    wins_reached: currentWins + (result === 'W' ? 1 : 0),
+                    amount: amount,
+                    result: result,
+                    portfolio_after: portfolioAfter
+                }).select().single();
 
-            if (data) {
-                currentDbSessionId = data.id;
-                setDbSessionId(data.id);
-            } else if (error) {
-                console.error("Error creating session", error);
-                return;
+                if (insertedTrade) {
+                    newDbTradeId = insertedTrade.id;
+                }
             }
+
+            const newTrade: TradeRecord = {
+                id: Date.now(),
+                dbId: newDbTradeId,
+                amount,
+                result,
+                portfolioAfter,
+                imageUrl: undefined
+            };
+
+            // UI Update
+            setTrades(prev => [...prev, newTrade]);
+        } finally {
+            setIsProcessing(false);
         }
 
-        let newDbTradeId: string | undefined;
-
-        if (currentDbSessionId) {
-            const { data: insertedTrade } = await supabase.from('trades').insert({
-                session_id: currentDbSessionId,
-                user_id: session.user.id,
-                trade_index: currentTradeIndex, // 0-based
-                wins_reached: currentWins + (result === 'W' ? 1 : 0),
-                amount: amount,
-                result: result,
-                portfolio_after: portfolioAfter
-            }).select().single();
-
-            if (insertedTrade) {
-                newDbTradeId = insertedTrade.id;
-            }
-        }
-
-        const newTrade: TradeRecord = {
-            id: Date.now(),
-            dbId: newDbTradeId,
-            amount,
-            result,
-            portfolioAfter,
-            imageUrl: undefined
-        };
-
-        // UI Update
-        setTrades(prev => [...prev, newTrade]);
-
-    }, [nextTradeAmount, currentPortfolio, multiplier, currentWins, session, dbSessionId, sessionCount, config.capital, currentTradeIndex]);
+    }, [nextTradeAmount, currentPortfolio, multiplier, currentWins, session, dbSessionId, sessionCount, config.capital, currentTradeIndex, isProcessing]);
 
     const handleConfigUpdate = (newParams: Partial<typeof config>) => {
         const structuralFields = ['capital', 'totalTrades', 'targetWins', 'payout'];
@@ -467,6 +481,8 @@ function App() {
     };
 
     const [showAuth, setShowAuth] = useState(false);
+    const [showAboutPage, setShowAboutPage] = useState(false);
+    const [showFeaturesPage, setShowFeaturesPage] = useState(false);
 
     if (loading) return (
         <div className="min-h-screen bg-background flex items-center justify-center text-accent">
@@ -475,6 +491,25 @@ function App() {
             </div>
         </div>
     );
+
+    // About Page (Public/Accessible without login)
+    if (showAboutPage) {
+        return <AboutPage onBack={() => setShowAboutPage(false)} />;
+    }
+
+    // Features Page (Public)
+    if (showFeaturesPage) {
+        return <FeaturesPage onBack={() => setShowFeaturesPage(false)} />;
+    }
+
+    // Password Update View (Authenticated)
+    if (session && currentView === 'update-password') {
+        return (
+            <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+                <UpdatePassword onSuccess={() => setCurrentView('dashboard')} />
+            </div>
+        );
+    }
 
     if (!session) {
         if (showAuth) {
@@ -492,7 +527,7 @@ function App() {
                 </div>
             );
         }
-        return <LandingPage onGetStarted={() => setShowAuth(true)} onLogin={() => setShowAuth(true)} />;
+        return <LandingPage onGetStarted={() => setShowAuth(true)} onLogin={() => setShowAuth(true)} onAbout={() => setShowAboutPage(true)} onFeatures={() => setShowFeaturesPage(true)} />;
     }
 
     const getPageTitle = () => {
@@ -503,6 +538,7 @@ function App() {
             case 'calculator': return 'Compound Calculator';
             case 'settings': return 'Configuration';
             case 'profile': return 'User Profile';
+            case 'update-password': return 'Update Password';
             default: return 'Dashboard';
         }
     };
@@ -539,6 +575,11 @@ function App() {
                         stopLossLimit={config.stopLossLimit}
                         stopLossEnabled={config.stopLossEnabled}
                         sessionCount={sessionCount}
+                        onNavigate={(view) => {
+                            if (view === 'trade') setCurrentView('trademanager');
+                            else if (view === 'settings') setCurrentView('settings');
+                            else if (view === 'history') setCurrentView('history');
+                        }}
                     />
                     <div className="glass-panel p-6 rounded-2xl min-h-[300px]">
                         <div className="flex items-center gap-3 mb-6">
@@ -547,7 +588,7 @@ function App() {
                             </div>
                             <h2 className="text-xl font-bold text-white tracking-tight">Recent Sessions</h2>
                         </div>
-                        <History session={session} isInline={true} />
+                        <History session={session} isInline={true} hideSelection={true} />
                     </div>
                 </div>
             )}
@@ -572,7 +613,7 @@ function App() {
                             <TradeEntry
                                 amount={nextTradeAmount}
                                 onResult={handleTradeResult}
-                                disabled={trades.length >= config.totalTrades || currentWins >= config.targetWins}
+                                disabled={trades.length >= config.totalTrades || currentWins >= config.targetWins || isProcessing}
                                 isRiskCritical={isRiskCritical}
                             />
                             <TradeLog
@@ -644,6 +685,7 @@ function App() {
             {currentView === 'profile' && (
                 <UserProfile
                     session={session}
+
                     onProfileUpdate={(data) => {
                         setUserName(data.full_name);
                         setAvatarUrl(data.avatar_url || '');
@@ -657,3 +699,4 @@ function App() {
 }
 
 export default App;
+

@@ -4,7 +4,6 @@ import {
     Calculator as CalcIcon,
     ChevronDown,
     Calendar,
-    Copy,
     TrendingUp,
     Download,
     Info
@@ -139,22 +138,33 @@ export const Calculator: React.FC = () => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-6 gap-8 grid grid-cols-1 lg:grid-cols-12 min-h-0 flex-1 overflow-visible">
+        <div className="max-w-7xl mx-auto px-6 py-10 gap-10 grid grid-cols-1 lg:grid-cols-12 min-h-0 flex-1 overflow-visible animate-in fade-in duration-1000">
             {/* INPUT PANEL */}
-            <aside className="lg:col-span-4 space-y-4">
-                <div className="glass-panel p-6 rounded-2xl border-white/5 space-y-6">
+            <aside className="lg:col-span-4 space-y-6">
+                <div className="glass-panel p-6 rounded-3xl space-y-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[80px] pointer-events-none" />
+
+                    <div className="flex items-center gap-4 mb-2 relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
+                            <CalcIcon size={20} className="text-accent" />
+                        </div>
+                        <div className="space-y-0.5">
+                            <h2 className="text-lg font-bold text-white">Calculator</h2>
+                            <p className="text-xs text-text-secondary uppercase tracking-widest opacity-50">Simulation Inputs</p>
+                        </div>
+                    </div>
                     {/* Principal Amount */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-text-secondary tracking-wide">Principal amount:</label>
-                        <div className="relative group">
-                            <div className="absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center text-text-secondary text-xl font-light border-r border-white/5 group-focus-within:text-accent transition-colors">
+                    <div className="space-y-3 relative z-10">
+                        <label className="text-xs font-bold text-text-secondary uppercase tracking-widest opacity-60">Principal amount:</label>
+                        <div className="relative group/input">
+                            <div className="absolute left-0 top-0 bottom-0 w-14 flex items-center justify-center text-accent text-xl font-black border-r border-white/5 group-focus-within/input:bg-accent/5 transition-all">
                                 $
                             </div>
                             <input
                                 type="number"
                                 value={principal}
                                 onChange={(e) => setPrincipal(Number(e.target.value))}
-                                className="w-full bg-[#1e232d] border border-white/10 rounded-xl pl-14 pr-4 py-3 text-xl font-mono text-white outline-none focus:border-accent/40"
+                                className="input-field w-full pl-14 pr-4 py-3 text-xl font-mono text-white"
                             />
                         </div>
                     </div>
@@ -168,7 +178,7 @@ export const Calculator: React.FC = () => {
                                     type="number"
                                     value={interestRate}
                                     onChange={(e) => setInterestRate(Number(e.target.value))}
-                                    className="w-full bg-[#1e232d] border border-white/10 rounded-xl pr-10 pl-4 py-3 text-xl font-mono text-white outline-none focus:border-accent/40 text-left"
+                                    className="input-field w-full pr-10 pl-4 py-3 text-xl font-mono text-white text-left"
                                 />
                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary font-mono text-xl">%</span>
                             </div>
@@ -176,7 +186,7 @@ export const Calculator: React.FC = () => {
                                 <select
                                     value={interestPeriod}
                                     disabled
-                                    className="w-full bg-[#1e232d] border border-white/10 rounded-xl px-4 py-3 text-lg text-white outline-none appearance-none cursor-default opacity-100"
+                                    className="input-field w-full px-4 py-3 text-lg text-white opacity-100 cursor-default appearance-none"
                                 >
                                     <option value="daily">daily</option>
                                 </select>
@@ -193,7 +203,7 @@ export const Calculator: React.FC = () => {
                                 type="number"
                                 value={duration.years}
                                 onChange={(e) => setDuration({ ...duration, years: Number(e.target.value) })}
-                                className="w-full bg-[#1e232d] border border-white/10 rounded-xl px-4 py-3 text-xl font-mono text-white outline-none focus:border-accent/40"
+                                className="input-field w-full px-4 py-3 text-xl font-mono text-white"
                             />
                         </div>
                         <div className="space-y-2">
@@ -202,7 +212,7 @@ export const Calculator: React.FC = () => {
                                 type="number"
                                 value={duration.months}
                                 onChange={(e) => setDuration({ ...duration, months: Number(e.target.value) })}
-                                className="w-full bg-[#1e232d] border border-white/10 rounded-xl px-4 py-3 text-xl font-mono text-white outline-none focus:border-accent/40"
+                                className="input-field w-full px-4 py-3 text-xl font-mono text-white"
                             />
                         </div>
                         <div className="space-y-2">
@@ -211,7 +221,7 @@ export const Calculator: React.FC = () => {
                                 type="number"
                                 value={duration.days}
                                 onChange={(e) => setDuration({ ...duration, days: Number(e.target.value) })}
-                                className="w-full bg-[#1e232d] border border-white/10 rounded-xl px-4 py-3 text-xl font-mono text-white outline-none focus:border-accent/40"
+                                className="input-field w-full px-4 py-3 text-xl font-mono text-white"
                             />
                         </div>
                     </div>
@@ -244,7 +254,7 @@ export const Calculator: React.FC = () => {
                                     <select
                                         value={reinvestRate}
                                         onChange={(e) => setReinvestRate(Number(e.target.value))}
-                                        className="w-full bg-[#1e232d] border border-white/10 rounded-xl px-4 py-2 text-lg text-white outline-none appearance-none cursor-pointer"
+                                        className="input-field w-full px-4 py-2 text-lg text-white appearance-none cursor-pointer"
                                     >
                                         {[100, 90, 80, 70, 60, 50, 40, 30, 20, 10].map(r => (
                                             <option key={r} value={r}>{r}%</option>
@@ -285,27 +295,26 @@ export const Calculator: React.FC = () => {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="pt-4 border-t border-white/5 grid grid-cols-2 gap-4 items-end">
+                    <div className="pt-6 border-t border-white/5 grid grid-cols-2 gap-4 items-end relative z-10">
                         <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                                <label className="text-sm font-semibold text-text-secondary tracking-wide whitespace-nowrap">Start date?</label>
-                                <button onClick={() => setStartDate(new Date().toISOString().split('T')[0])} className="text-[10px] font-bold text-accent uppercase tracking-tighter hover:underline">today</button>
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest opacity-60">Start Date</label>
+                                <button onClick={() => setStartDate(new Date().toISOString().split('T')[0])} className="text-[9px] font-bold text-accent uppercase tracking-tighter hover:underline">today</button>
                             </div>
-                            <div className="relative">
+                            <div className="relative group/date">
                                 <input
                                     type="date"
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
-                                    className="w-full bg-[#1e232d] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-accent/40"
+                                    className="input-field w-full px-4 py-3 text-xs text-white"
                                 />
                                 <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" size={16} />
                             </div>
                         </div>
                         <button
                             onClick={handleCalculate}
-                            className="bg-accent hover:bg-accent-hover text-[#0F172A] py-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-accent/20 uppercase text-xs tracking-widest"
+                            className="btn-primary w-full py-4 flex items-center justify-center gap-3 font-black text-xs transition-all shadow-xl shadow-accent/20"
                         >
-                            <CalcIcon size={14} />
                             Calculate
                         </button>
                     </div>
@@ -336,51 +345,51 @@ export const Calculator: React.FC = () => {
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="space-y-6 pb-12"
+                            className="space-y-8 pb-12"
                         >
-                            <header className="flex items-end justify-between border-b border-white/10 pb-2">
-                                <h1 className="text-3xl font-black text-white tracking-tight">Interest calculation for <span className="text-accent">{getDurationLabel()}</span></h1>
+                            <header className="flex items-end justify-between border-b border-white/5 pb-4">
+                                <div className="space-y-1">
+                                    <h1 className="text-2xl font-bold text-white tracking-tight">Yield Projection</h1>
+                                    <p className="text-xs text-text-secondary uppercase tracking-widest opacity-50">Temporal Range: {getDurationLabel()}</p>
+                                </div>
                             </header>
 
                             {/* Summary Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="glass-panel p-5 rounded-2xl relative group bg-accent/5 border-accent/20">
-                                    <p className="text-[10px] font-black text-accent uppercase tracking-widest mb-2">Future Value</p>
-                                    <p className="text-2xl font-black text-white font-mono">{formatCurr(results.futureValue)}</p>
-                                    <button className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-white/5 text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Copy size={14} />
-                                    </button>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="glass-panel p-6 rounded-3xl relative group/stat bg-accent/5 border-accent/20 overflow-hidden">
+                                    <p className="text-xs font-bold text-accent uppercase tracking-widest mb-2">Future Value</p>
+                                    <p className="text-3xl font-bold text-white">{formatCurr(results.futureValue)}</p>
                                 </div>
-                                <div className="glass-panel p-5 rounded-2xl relative group">
-                                    <p className="text-[10px] font-black text-text-secondary uppercase tracking-widest mb-2">Total Interest</p>
-                                    <p className="text-2xl font-black text-white font-mono">{formatCurr(results.totalInterest)}</p>
+                                <div className="glass-panel p-6 rounded-3xl relative group/stat overflow-hidden">
+                                    <p className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 opacity-60">Total Profit</p>
+                                    <p className="text-3xl font-bold text-white">{formatCurr(results.totalInterest)}</p>
                                 </div>
-                                <div className="glass-panel p-5 rounded-2xl group">
-                                    <p className="text-[10px] font-black text-text-secondary uppercase tracking-widest mb-2">Rate of Return</p>
-                                    <div className="flex items-center gap-2">
-                                        <TrendingUp className="text-accent" size={20} />
-                                        <span className="text-2xl font-black text-accent font-mono">{results.ror.toFixed(2)}%</span>
+                                <div className="glass-panel p-6 rounded-3xl relative group/stat overflow-hidden">
+                                    <p className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 opacity-60">Total Return</p>
+                                    <div className="flex items-center gap-3">
+                                        <TrendingUp className="text-accent" size={24} />
+                                        <span className="text-3xl font-bold text-accent">{results.ror.toFixed(1)}%</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Secondary Data Row */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="glass-panel p-5 rounded-2xl flex items-center justify-between">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="glass-panel p-6 rounded-3xl flex items-center justify-between group/stat overflow-hidden">
                                     <div>
-                                        <p className="text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1">Initial Balance</p>
-                                        <p className="text-xl font-black text-white font-mono">{formatCurr(results.initialBalance)}</p>
+                                        <p className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-1 opacity-60">Initial Balance</p>
+                                        <p className="text-xl font-bold text-white">{formatCurr(results.initialBalance)}</p>
                                     </div>
-                                    <div className="p-3 rounded-xl bg-white/5 text-text-secondary">
+                                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-text-secondary">
                                         <Info size={20} />
                                     </div>
                                 </div>
-                                <div className="glass-panel p-5 rounded-2xl flex items-center justify-between">
+                                <div className="glass-panel p-6 rounded-3xl flex items-center justify-between group/stat overflow-hidden">
                                     <div>
-                                        <p className="text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1">Compounded Gain</p>
-                                        <p className="text-xl font-black text-accent font-mono">{(results.ror / (duration.years || 1)).toFixed(2)}% avg/yr</p>
+                                        <p className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-1 opacity-60">Average Annual Growth</p>
+                                        <p className="text-xl font-bold text-accent">{(results.ror / (duration.years || 1)).toFixed(1)}% APY/SYS</p>
                                     </div>
-                                    <div className="p-3 rounded-xl bg-accent/10 text-accent">
+                                    <div className="p-3 rounded-xl bg-accent/10 border border-accent/20 text-accent">
                                         <TrendingUp size={20} />
                                     </div>
                                 </div>
@@ -393,7 +402,7 @@ export const Calculator: React.FC = () => {
                                 </div>
                                 <button
                                     onClick={handleExportExcel}
-                                    className="p-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 shadow-lg shadow-emerald-500/10 transition-all active:scale-95"
+                                    className="p-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
                                     title="Export to Excel"
                                 >
                                     <Download size={18} />
@@ -401,30 +410,30 @@ export const Calculator: React.FC = () => {
                             </div>
 
                             {/* Breakdown Table */}
-                            <div className="glass-panel rounded-2xl overflow-hidden border-white/5 max-h-[600px] overflow-y-auto custom-scrollbar shadow-2xl">
-                                <div className="overflow-x-auto">
+                            <div className="glass-panel rounded-3xl overflow-hidden border-white/5 max-h-[700px] overflow-y-auto custom-scrollbar shadow-2xl relative group/table">
+                                <div className="overflow-x-auto relative z-10">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
-                                            <tr className="sticky top-0 z-10 text-[10px] font-black uppercase tracking-widest border-b border-white/10">
-                                                <th className="px-6 py-5 bg-slate-900 text-accent font-bold">Date / Day</th>
-                                                <th className="px-6 py-5 bg-slate-900 text-white font-bold">Earnings</th>
-                                                <th className="px-6 py-5 bg-slate-900 text-white font-bold">Total Earnings</th>
-                                                <th className="px-6 py-5 bg-slate-900 text-white font-bold text-right">Balance</th>
+                                            <tr className="sticky top-0 z-20 text-xs font-bold uppercase tracking-widest border-b border-white/10 shadow-xl">
+                                                <th className="px-8 py-6 bg-[#0B0E14]/95 backdrop-blur-xl text-accent">Day / Date</th>
+                                                <th className="px-8 py-6 bg-[#0B0E14]/95 backdrop-blur-xl text-white">Daily Earnings</th>
+                                                <th className="px-8 py-6 bg-[#0B0E14]/95 backdrop-blur-xl text-white">Total Earnings</th>
+                                                <th className="px-8 py-6 bg-[#0B0E14]/95 backdrop-blur-xl text-white text-right">Balance</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody className="divide-y divide-white/5">
                                             {results.breakdown.map((row: any, i: number) => (
-                                                <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                                                    <td className="px-6 py-4 text-xs font-bold text-text-secondary">
-                                                        {row.date} <span className="text-[10px] font-black text-text-secondary/30 ml-1">Day {row.dayNum}</span>
+                                                <tr key={i} className="hover:bg-accent/5 transition-colors group/row">
+                                                    <td className="px-8 py-5 text-sm font-bold text-white tracking-tight">
+                                                        {row.date} <span className="text-xs text-text-secondary/50 ml-2">Day {row.dayNum}</span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-xs font-mono text-white">
+                                                    <td className="px-8 py-5 text-sm font-medium text-white">
                                                         {formatCurr(row.earnings)}
                                                     </td>
-                                                    <td className="px-6 py-4 text-xs font-mono text-white/60">
+                                                    <td className="px-8 py-5 text-xs text-text-secondary font-medium">
                                                         {formatCurr(row.totalEarnings)}
                                                     </td>
-                                                    <td className="px-6 py-4 text-xs font-mono font-black text-accent text-right">
+                                                    <td className="px-8 py-5 text-base font-bold text-accent text-right">
                                                         {formatCurr(row.balance)}
                                                     </td>
                                                 </tr>

@@ -1,14 +1,40 @@
 import React from 'react';
 import { ArrowRight, BarChart2, LayoutDashboard, Shield } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface LandingPageProps {
     onGetStarted: () => void;
     onLogin: () => void;
+    onAbout: () => void;
+    onFeatures: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onAbout, onFeatures }) => {
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.15,
+                delayChildren: 0.2
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 30 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                duration: 0.8,
+                ease: [0.25, 1, 0.5, 1]
+            }
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-background text-text-primary font-sans selection:bg-accent selection:text-white overflow-hidden">
+        <div className="min-h-screen bg-background text-text-primary font-sans selection:bg-accent selection:text-white overflow-hidden grid-background">
             {/* Navbar */}
             <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-background/80 backdrop-blur-md">
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -19,20 +45,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
                         <span className="text-xl font-bold tracking-tight">TRADE<span className="text-accent">FLOW</span></span>
                     </div>
                     <div className="hidden md:flex items-center gap-8 text-sm font-medium text-text-secondary">
-                        <a href="#" className="hover:text-white transition-colors">Features</a>
-                        <a href="#" className="hover:text-white transition-colors">Pricing</a>
-                        <a href="#" className="hover:text-white transition-colors">About</a>
+                        <button onClick={onFeatures} className="hover:text-white transition-colors uppercase tracking-widest text-[10px]">Features</button>
+                        <a href="#" className="hover:text-white transition-colors uppercase tracking-widest text-[10px]">Pricing</a>
+                        <button onClick={onAbout} className="hover:text-white transition-colors uppercase tracking-widest text-[10px]">About</button>
                     </div>
                     <div className="flex items-center gap-4">
                         <button
                             onClick={onLogin}
-                            className="text-sm font-medium text-text-secondary hover:text-white transition-colors"
+                            className="text-[10px] font-bold text-text-secondary hover:text-white transition-colors uppercase tracking-widest"
                         >
-                            Sign In
+                            Log In
                         </button>
                         <button
                             onClick={onGetStarted}
-                            className="bg-accent hover:bg-accent-hover text-background px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105"
+                            className="bg-accent hover:bg-accent-hover text-background px-4 py-2 rounded-lg text-[10px] font-black transition-all hover:scale-105 uppercase tracking-widest animate-pulse-glow"
                         >
                             Start Free Trial
                         </button>
@@ -47,63 +73,77 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
                     <div className="absolute top-[40%] right-[20%] w-96 h-96 bg-blue-600/20 rounded-full blur-[100px]" />
                 </div>
 
-                <div className="relative max-w-4xl mx-auto text-center space-y-8">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-semibold uppercase tracking-wider">
+                <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={containerVariants}
+                    className="relative max-w-4xl mx-auto text-center space-y-8"
+                >
+                    <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-semibold uppercase tracking-wider">
                         <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
                         Next-Gen Analytics Now Live
-                    </div>
+                    </motion.div>
 
-                    <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight">
-                        Master Your <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-blue-500">Trading Flow</span>
-                    </h1>
+                    <motion.h1 variants={itemVariants} className="text-5xl md:text-8xl font-black tracking-tighter leading-[0.9] text-glow">
+                        MASTER YOUR <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-blue-400 to-accent bg-[length:200%_auto] animate-gradient">TRADING FLOW</span>
+                    </motion.h1>
 
-                    <p className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto leading-relaxed">
-                        The ultimate edge for modern traders. Track every execution, analyze performance with institutional-grade metrics, and master your psychological game in real-time.
-                    </p>
+                    <motion.p variants={itemVariants} className="text-lg md:text-2xl text-text-secondary max-w-2xl mx-auto leading-relaxed font-medium">
+                        The ultimate edge for modern traders. Institutional-grade metrics, psychological mastery, and real-time execution tracking.
+                    </motion.p>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                    <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                         <button
                             onClick={onGetStarted}
-                            className="w-full sm:w-auto px-8 py-4 rounded-xl bg-accent hover:bg-accent-hover text-background font-bold text-lg transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(34,211,238,0.4)]"
+                            className="w-full sm:w-auto px-10 py-5 rounded-xl bg-accent hover:bg-accent-hover text-background font-black text-lg transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] uppercase tracking-wider animate-pulse-glow"
                         >
                             Get Started for Free
                         </button>
-                        <button className="w-full sm:w-auto px-8 py-4 rounded-xl bg-surface border border-border hover:border-accent/50 text-white font-medium text-lg transition-all flex items-center justify-center gap-2 group">
+                        <button className="w-full sm:w-auto px-10 py-5 rounded-xl bg-surface/50 border border-white/10 hover:border-accent/50 text-white font-bold text-lg transition-all flex items-center justify-center gap-2 group backdrop-blur-sm uppercase tracking-wider">
                             View Live Demo
                             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </button>
-                    </div>
-                </div>
+                    </motion.div>
+                </motion.div>
 
                 {/* Dashboard Preview Mockup */}
-                <div className="relative mt-20 max-w-6xl mx-auto">
-                    <div className="absolute -inset-1 bg-gradient-to-b from-accent/20 to-transparent rounded-2xl blur-lg opacity-50" />
-                    <div className="relative bg-panel border border-border rounded-xl p-2 shadow-2xl overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent pointer-events-none" />
+                <motion.div
+                    initial={{ opacity: 0, y: 100 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.8, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                    className="relative mt-20 max-w-6xl mx-auto"
+                >
+                    <div className="absolute -inset-4 bg-gradient-to-b from-accent/20 to-transparent rounded-[2.5rem] blur-2xl opacity-50" />
+                    <div className="relative premium-glass rounded-3xl p-3 shadow-2xl overflow-hidden group">
+                        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent pointer-events-none" />
 
-                        {/* Creating a CSS-only mockup of the dashboard to keep it lightweight */}
-                        <div className="bg-[#0B0E14] rounded-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6 opacity-90">
-                            {/* Stats Row */}
-                            <div className="col-span-1 p-5 rounded-xl bg-surface/50 border border-white/5 space-y-2">
-                                <div className="text-xs text-text-secondary uppercase tracking-wider">Net P&L</div>
-                                <div className="text-2xl font-bold text-white">$12,450.80</div>
-                                <div className="text-sm text-accent">+14.2%</div>
-                            </div>
-                            <div className="col-span-2 p-5 rounded-xl bg-surface/50 border border-white/5 flex items-end relative overflow-hidden">
-                                <div className="w-full h-24 flex items-end gap-1">
-                                    {/* CSS Bar Chart */}
-                                    <div className="flex-1 bg-accent/20 h-[40%] rounded-t-sm" />
-                                    <div className="flex-1 bg-accent/40 h-[70%] rounded-t-sm" />
-                                    <div className="flex-1 bg-accent/60 h-[50%] rounded-t-sm" />
-                                    <div className="flex-1 bg-accent h-[85%] rounded-t-sm shadow-[0_0_15px_rgba(34,211,238,0.5)]" />
-                                    <div className="flex-1 bg-accent/50 h-[60%] rounded-t-sm" />
+                        <div className="bg-[#0B0E14] rounded-2xl p-8 grid grid-cols-1 md:grid-cols-3 gap-8 opacity-95">
+                            <div className="col-span-1 p-6 rounded-2xl bg-surface/50 border border-white/5 space-y-3">
+                                <div className="text-[10px] text-text-secondary uppercase tracking-[0.2em] font-bold">Net P&L</div>
+                                <div className="text-4xl font-black text-white">$12,450.80</div>
+                                <div className="text-sm font-bold text-success flex items-center gap-1 selection:bg-success/20">
+                                    <ArrowRight className="-rotate-45 w-4 h-4" />
+                                    +14.2%
                                 </div>
-                                <div className="absolute top-5 left-5 text-xs text-text-secondary uppercase tracking-wider">Equity Growth</div>
+                            </div>
+                            <div className="col-span-2 p-6 rounded-2xl bg-surface/50 border border-white/5 flex items-end relative overflow-hidden">
+                                <div className="w-full h-32 flex items-end gap-2 px-2">
+                                    <div className="flex-1 bg-accent/20 h-[40%] rounded-t-lg" />
+                                    <div className="flex-1 bg-accent/40 h-[70%] rounded-t-lg" />
+                                    <div className="flex-1 bg-accent/60 h-[50%] rounded-t-lg" />
+                                    <div className="flex-1 bg-accent h-[90%] rounded-t-lg shadow-[0_0_20px_var(--accent-glow)]" />
+                                    <div className="flex-1 bg-accent/50 h-[65%] rounded-t-lg" />
+                                    <div className="flex-1 bg-accent/30 h-[45%] rounded-t-lg" />
+                                </div>
+                                <div className="absolute top-6 left-6 text-[10px] text-text-secondary uppercase tracking-[0.2em] font-bold">Equity Growth Curve</div>
                             </div>
                         </div>
+
+                        {/* Scan Effect Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/5 to-transparent h-1/2 w-full top-0 opacity-0 group-hover:opacity-100 group-hover:animate-scan pointer-events-none" />
                     </div>
-                </div>
+                </motion.div>
             </div>
 
             {/* Features Grid */}
@@ -112,46 +152,72 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin 
                     {[
                         { icon: BarChart2, title: "Real-time Analytics", desc: "Every trade is calculated instantly. Get precise metrics on your expectancy, average R-multiple, and drawdown." },
                         { icon: LayoutDashboard, title: "Session Manager", desc: "Optimize your trading hours. Identify which market sessions and volatility profiles yield your highest win rates." },
-                        { icon: Shield, title: "Risk Calculator", desc: "Stop over-leveraging. Our advanced position sizer calculates exact risk based on your current balance and volatility." }
+                        { icon: Shield, title: "Risk Calculator", desc: "Stop over-leveraging. Our advanced position sizer calculates exact risk based on your balance." }
                     ].map((feature, i) => (
-                        <div key={i} className="p-8 rounded-2xl bg-panel border border-border/50 hover:border-accent/30 transition-all hover:translate-y-1 group">
-                            <div className="w-12 h-12 rounded-lg bg-surface flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                                <feature.icon className="w-6 h-6 text-accent" />
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: i * 0.1 }}
+                            className="p-10 rounded-3xl premium-glass border border-white/5 hover:border-accent/40 transition-all hover:-translate-y-2 group cursor-pointer"
+                        >
+                            <div className="w-14 h-14 rounded-2xl bg-surface flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-500">
+                                <feature.icon className="w-7 h-7 text-accent group-hover:drop-shadow-[0_0_8px_var(--accent-glow)]" />
                             </div>
-                            <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                            <p className="text-text-secondary leading-relaxed">{feature.desc}</p>
-                        </div>
+                            <h3 className="text-2xl font-black mb-4 uppercase tracking-tight">{feature.title}</h3>
+                            <p className="text-text-secondary leading-relaxed font-medium">{feature.desc}</p>
+                        </motion.div>
                     ))}
                 </div>
             </div>
 
             {/* CTA Section */}
             <div className="py-24 px-6">
-                <div className="max-w-5xl mx-auto p-12 rounded-3xl bg-surface/30 border border-white/5 text-center relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 rounded-full blur-[80px]" />
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    className="max-w-5xl mx-auto p-16 rounded-[3rem] bg-gradient-to-b from-surface to-background border border-white/5 text-center relative overflow-hidden shadow-2xl"
+                >
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-accent/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2" />
 
-                    <h2 className="text-3xl md:text-4xl font-bold mb-6 relative z-10">Ready to level up your edge?</h2>
-                    <p className="text-text-secondary mb-8 max-w-xl mx-auto relative z-10">
+                    <h2 className="text-4xl md:text-6xl font-black mb-8 relative z-10 tracking-tighter uppercase">
+                        READY TO <span className="text-accent underline decoration-4 underline-offset-8">LEVEL UP</span> YOUR EDGE?
+                    </h2>
+                    <p className="text-xl text-text-secondary mb-12 max-w-xl mx-auto relative z-10 font-medium leading-relaxed">
                         Join 15,000+ traders who have optimized their profitability using TradeFlow's institutional tools.
                     </p>
                     <button
                         onClick={onGetStarted}
-                        className="px-8 py-4 rounded-xl bg-accent hover:bg-accent-hover text-background font-bold text-lg transition-all hover:scale-105 relative z-10"
+                        className="px-12 py-5 rounded-2xl bg-accent hover:bg-accent-hover text-background font-black text-xl transition-all hover:scale-105 relative z-10 shadow-xl hover:shadow-[0_0_40px_rgba(34,211,238,0.5)] animate-pulse-glow uppercase tracking-widest"
                     >
-                        Start Your 14-Day Free Trial
+                        Get Started Now — It's Free
                     </button>
-                </div>
+
+                    <div className="mt-8 text-sm text-text-secondary/50 font-bold uppercase tracking-[0.3em] relative z-10">
+                        No Credit Card Required • Instant Setup
+                    </div>
+                </motion.div>
             </div>
 
             {/* Footer */}
-            <footer className="border-t border-white/5 py-12 px-6">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div className="flex items-center gap-2">
-                        <BarChart2 className="w-6 h-6 text-accent" />
-                        <span className="font-bold tracking-tight">TRADE<span className="text-accent">FLOW</span></span>
+            <footer className="border-t border-white/5 py-16 px-6">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                            <BarChart2 className="w-6 h-6 text-accent" />
+                        </div>
+                        <span className="text-2xl font-black tracking-tighter">TRADE<span className="text-accent">FLOW</span></span>
                     </div>
-                    <div className="text-sm text-text-secondary">
-                        © 2024 TradeFlow Analytics • Systems Operational <span className="text-success">●</span>
+                    <div className="flex gap-8 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">
+                        <a href="#" className="hover:text-accent transition-colors">Privacy</a>
+                        <a href="#" className="hover:text-accent transition-colors">Terms</a>
+                        <a href="#" className="hover:text-accent transition-colors">Security</a>
+                    </div>
+                    <div className="text-xs font-bold text-text-secondary uppercase tracking-widest flex items-center gap-2">
+                        © 2024 TradeFlow Analytics <span className="w-1 h-1 rounded-full bg-text-secondary/30" /> ALL SYSTEMS OPERATIONAL <span className="text-success animate-pulse">●</span>
                     </div>
                 </div>
             </footer>

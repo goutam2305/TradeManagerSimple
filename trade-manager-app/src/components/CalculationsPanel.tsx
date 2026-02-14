@@ -62,10 +62,11 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
     };
 
     return (
-        <section className="glass-panel p-4 rounded-2xl space-y-4">
-            <div className="flex items-center gap-2 mb-2">
-                <Settings size={18} className="text-blue-400" />
-                <h2 className="text-lg font-semibold uppercase tracking-tight">Configuration</h2>
+        <section className="glass-panel p-6 space-y-6 relative overflow-hidden group">
+
+            <div className="flex items-center gap-3 mb-2">
+                <Settings size={18} className="text-accent" />
+                <h2 className="text-sm font-bold text-text-secondary uppercase tracking-widest">Configuration</h2>
             </div>
 
             <div className="space-y-4">
@@ -82,18 +83,18 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                         <motion.button
                             onClick={() => onUpdate({ autoCompounding: !autoCompounding })}
                             whileTap={{ scale: 0.95 }}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all duration-300 ${autoCompounding
-                                ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
-                                : 'bg-slate-800/20 border-slate-700/50 text-slate-500 hover:border-slate-600'
+                            className={`flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-300 ${autoCompounding
+                                ? 'bg-accent/10 text-accent shadow-[0_0_20px_rgba(77,167,204,0.3)] border border-accent/20'
+                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                                 }`}
                             title="Auto-copy balance to capital on finish"
                         >
                             <RefreshCw size={14} className={autoCompounding ? 'animate-spin-slow' : ''} />
-                            <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">Auto-Copy</span>
-                            <div className={`w-6 h-3.5 rounded-full relative transition-colors ${autoCompounding ? 'bg-blue-500' : 'bg-slate-700'}`}>
+                            <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Auto-Copy</span>
+                            <div className={`w-8 h-4 rounded-full relative transition-colors ${autoCompounding ? 'bg-accent shadow-[0_0_10px_rgba(77,167,204,0.5)]' : 'bg-slate-950'}`}>
                                 <motion.div
-                                    animate={{ x: autoCompounding ? 11 : 2 }}
-                                    className="absolute top-0.5 left-0.5 w-2.5 h-2.5 bg-white rounded-full shadow-sm"
+                                    animate={{ x: autoCompounding ? 16 : 2 }}
+                                    className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full shadow-sm ${autoCompounding ? 'bg-white shadow-sm' : 'bg-slate-500'}`}
                                 />
                             </div>
                         </motion.button>
@@ -133,7 +134,7 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                     onChange={(v) => onUpdate({ payout: v })}
                 />
 
-                <div className="pt-3 border-t border-slate-800 space-y-3">
+                <div className="pt-3 border-t border-white/10 space-y-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="text-[11px] font-bold text-text-secondary uppercase tracking-widest">Risk Warning</span>
@@ -141,17 +142,22 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                         <motion.button
                             onClick={() => onUpdate({ stopLossEnabled: !stopLossEnabled })}
                             whileTap={{ scale: 0.95 }}
-                            className={`w-10 h-5 rounded-full relative transition-colors ${stopLossEnabled ? 'bg-red-500' : 'bg-slate-700'}`}
+                            className={`w-10 h-5 rounded-full relative transition-all ${stopLossEnabled ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'bg-slate-700/50'}`}
                         >
                             <motion.div
-                                animate={{ x: stopLossEnabled ? 22 : 2 }}
-                                className="absolute top-1 left-1.5 w-3 h-3 bg-white rounded-full shadow-sm"
+                                animate={{ x: stopLossEnabled ? 20 : 2 }}
+                                className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full shadow-sm ${stopLossEnabled ? 'bg-white shadow-sm' : 'bg-slate-400'}`}
                             />
                         </motion.button>
+                    </div>
+
+                    <AnimatePresence>
                         {stopLossEnabled && (
                             <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden"
                             >
                                 <InputField
                                     label="Max Loss Limit %"
@@ -161,10 +167,10 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                                 />
                             </motion.div>
                         )}
-                    </div>
+                    </AnimatePresence>
                 </div>
 
-                <div className="pt-3 border-t border-slate-800 space-y-3">
+                <div className="pt-3 border-t border-white/10 space-y-3">
                     <div className="flex items-center gap-2">
                         <span className="text-[11px] font-bold text-text-secondary uppercase tracking-widest">Daily Goal Settings</span>
                     </div>
@@ -182,9 +188,9 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                             <span className="text-[10px] font-bold text-text-secondary uppercase tracking-[0.2em] mb-1 opacity-50">Unit</span>
                             <motion.button
                                 onClick={() => onUpdate({ dailyGoalType: dailyGoalType === '$' ? '%' : '$' })}
-                                whileHover={{ scale: 1.05, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}
+                                whileHover={{ scale: 1.05, backgroundColor: 'rgba(77, 167, 204, 0.1)' }}
                                 whileTap={{ scale: 0.95 }}
-                                className="flex items-center justify-center p-2 rounded-xl bg-slate-800/40 border border-slate-700/50 text-blue-400 font-mono font-bold text-lg min-w-[44px] h-[44px] transition-all"
+                                className="flex items-center justify-center p-2 rounded-xl bg-[#0E1338] border border-white/10 text-accent font-mono font-bold text-lg min-w-[44px] h-[48px] transition-all"
                                 title="Toggle between Percentage (%) and Fixed Amount ($)"
                             >
                                 {dailyGoalType}
@@ -192,36 +198,36 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between px-2 py-2 bg-slate-800/20 rounded-xl border border-slate-700/30">
+                    <div className="flex items-center justify-between px-5 py-4 bg-slate-900/50 rounded-2xl shadow-inner">
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest leading-none">Sessions</span>
-                            <span className="text-[8px] text-text-secondary/60">Required Target</span>
+                            <span className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-0.5">Sessions</span>
+                            <span className="text-[10px] text-text-secondary font-bold uppercase tracking-widest opacity-60">Required Target</span>
                         </div>
-                        <span className="text-sm font-mono font-bold text-white bg-emerald-500/20 px-3 py-1 rounded-lg border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                            {sessionsRequired}
-                        </span>
+                        <div className="flex items-center justify-center bg-accent/20 px-4 py-2 rounded-xl shadow-[0_0_15px_rgba(77,167,204,0.1)]">
+                            <span className="text-xl font-mono font-black text-white">
+                                {sessionsRequired}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-800 flex flex-col gap-4">
-                <motion.button
+
+            <div className="pt-4 border-t border-white/10">
+                <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`w-full py-3 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all duration-300 ${isSaved
-                        ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-400'
-                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]'
-                        }`}
+                    className={`btn-primary w-full py-5 flex items-center justify-center gap-3 font-black text-xs transition-all shadow-xl text-[#0F172A] ${isSaved
+                        ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20 text-white'
+                        : 'shadow-accent/20'}`}
                 >
                     <AnimatePresence mode="wait">
                         {isSaving ? (
                             <motion.div
                                 key="saving"
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
                                 className="flex items-center gap-2"
                             >
                                 <Loader2 size={16} className="animate-spin" />
@@ -230,20 +236,20 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                         ) : isSaved ? (
                             <motion.div
                                 key="saved"
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
                                 className="flex items-center gap-2"
                             >
                                 <CheckCircle2 size={16} />
-                                Config Saved!
+                                Saved!
                             </motion.div>
                         ) : (
                             <motion.div
                                 key="default"
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
                                 className="flex items-center gap-2"
                             >
                                 <Save size={16} />
@@ -251,12 +257,9 @@ export const CalculationsPanel: React.FC<CalculationsPanelProps> = ({
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </motion.button>
-                <p className="text-[10px] text-text-secondary leading-relaxed italic text-center">
-                    Logic: Recursive matrix calculation ensures path-independent trade sizing to reach target win goal.
-                </p>
+                </button>
             </div>
-        </section>
+        </section >
     );
 };
 
@@ -269,20 +272,20 @@ interface InputFieldProps {
 }
 
 const InputField: React.FC<InputFieldProps> = ({ label, value, icon, step = 1, onChange }) => (
-    <div className="group">
-        <label className="text-[10px] font-bold text-text-secondary uppercase tracking-[0.2em] mb-2 block group-focus-within:text-blue-400 transition-colors opacity-70">
+    <div className="space-y-1.5">
+        <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest ml-1">
             {label}
         </label>
-        <div className="relative flex items-center">
-            <div className="absolute left-0 w-8 h-8 flex items-center justify-center text-slate-500 group-focus-within:text-blue-500 transition-colors">
+        <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">
                 {icon}
             </div>
             <input
                 type="number"
-                value={value}
+                value={value || ''}
                 step={step}
                 onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-                className="w-full bg-slate-800/10 border-b border-slate-700/50 pl-10 pr-4 py-2 outline-none focus:border-blue-500/50 focus:bg-blue-500/5 font-mono text-lg transition-all rounded-t-lg"
+                className="input-field w-full py-4 pl-10 pr-4 text-white font-mono font-bold focus:ring-2 focus:ring-accent/20 transition-all placeholder:text-slate-600"
             />
         </div>
     </div>

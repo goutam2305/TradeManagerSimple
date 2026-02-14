@@ -109,6 +109,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({ data, timeRange }) => 
                         strokeWidth={2}
                         fillOpacity={1}
                         fill="url(#colorBalance)"
+                        animationDuration={2000}
                     />
                 </AreaChart>
             </ResponsiveContainer>

@@ -1,361 +1,406 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Globe, Briefcase, TrendingUp, Save, Loader2, CheckCircle, PenSquare } from 'lucide-react';
-import { supabase } from '../supabaseClient';
+
+import React, { useState, useEffect } from 'react'; // Force Update
+import { User, Mail, Lock, Key, FileDown, Loader2, AlertTriangle, AlertOctagon, Camera } from 'lucide-react';
 import { Session } from '@supabase/supabase-js';
+import { supabase } from '../supabaseClient';
+import { exportTradeData } from '../utils/exportUtils';
+import { DeleteAccountModal } from './DeleteAccountModal';
 
 interface UserProfileProps {
     session: Session;
-    onProfileUpdate?: (data: ProfileData) => void;
-}
-
-interface ProfileData {
-    full_name: string;
-    country: string;
-    experience_level: string;
-    trading_style: string;
-    bio: string;
-    avatar_url?: string;
+    onProfileUpdate?: (data: any) => void;
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({ session, onProfileUpdate }) => {
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [saved, setSaved] = useState(false);
-    const [profile, setProfile] = useState<ProfileData>({
+    const user = session.user;
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [exporting, setExporting] = useState(false);
+
+    // Form State
+    const [email] = useState(user.email || '');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+
+    // Profile Data
+    const [profileData, setProfileData] = useState({
         full_name: '',
-        country: '',
-        experience_level: 'Beginner',
-        trading_style: 'Day Trader',
-        bio: ''
+        bio: '',
+        avatar_url: ''
     });
 
-    useEffect(() => {
-        loadProfile();
-    }, [session]);
+    // Delete Modal State
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-    const loadProfile = async () => {
+    useEffect(() => {
+        fetchProfile();
+    }, [user.id]);
+
+    // Auto-dismiss toast
+    useEffect(() => {
+        if (message) {
+            const timer = setTimeout(() => {
+                setMessage(null);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [message]);
+
+    const fetchProfile = async () => {
         try {
-            setLoading(true);
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from('user_profiles')
                 .select('*')
-                .eq('id', session.user.id)
+                .eq('id', user.id)
                 .single();
 
+            if (error && error.code !== 'PGRST116') throw error;
+
             if (data) {
-                setProfile({
+                setProfileData({
                     full_name: data.full_name || '',
-                    country: data.country || '',
-                    experience_level: data.experience_level || 'Beginner',
-                    trading_style: data.trading_style || 'Day Trader',
                     bio: data.bio || '',
                     avatar_url: data.avatar_url || ''
                 });
             }
         } catch (error) {
-            console.error('Error loading profile:', error);
+            console.error('Error fetching profile:', error);
+        }
+    };
+
+    const handleUpdateProfile = async () => {
+        setLoading(true);
+        setMessage(null);
+
+        try {
+            const updates = {
+                id: user.id,
+                ...profileData,
+                updated_at: new Date().toISOString()
+            };
+
+            const { error } = await supabase
+                .from('user_profiles')
+                .upsert(updates);
+
+            if (error) throw error;
+
+            if (onProfileUpdate) {
+                onProfileUpdate(updates);
+            }
+
+            setMessage({ type: 'success', text: 'Profile updated successfully' });
+        } catch (error: any) {
+            setMessage({ type: 'error', text: error.message });
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSave = async () => {
+    const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         try {
-            setSaving(true);
-            setSaved(false);
-
-            const { error } = await supabase
-                .from('user_profiles')
-                .upsert({
-                    id: session.user.id,
-                    ...profile,
-                    updated_at: new Date().toISOString()
-                });
-
-            if (error) throw error;
-
-            if (onProfileUpdate) {
-                onProfileUpdate(profile);
+            if (!event.target.files || event.target.files.length === 0) {
+                return;
             }
 
-            setSaved(true);
-            setTimeout(() => setSaved(false), 3000);
-        } catch (error) {
-            console.error('Error saving profile:', error);
-            alert('Failed to save profile. Please make sure you have created the user_profiles table in your Supabase dashboard.');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        try {
-            if (!e.target.files || e.target.files.length === 0) return;
-            const file = e.target.files[0];
+            const file = event.target.files[0];
             const fileExt = file.name.split('.').pop();
-            const fileName = `${session.user.id}/${Math.random()}.${fileExt}`;
+            const filePath = `${user.id}/${Math.random()}.${fileExt}`;
 
-            setSaving(true);
+            setLoading(true);
+
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(fileName, file);
+                .upload(filePath, file, { upsert: true });
 
             if (uploadError) throw uploadError;
 
             const { data: { publicUrl } } = supabase.storage
                 .from('avatars')
-                .getPublicUrl(fileName);
+                .getPublicUrl(filePath);
 
-            const newProfile = { ...profile, avatar_url: publicUrl };
-            setProfile(newProfile);
+            const updates = {
+                id: user.id,
+                avatar_url: publicUrl,
+                updated_at: new Date().toISOString()
+            };
 
-            // Persist immediately
             const { error: updateError } = await supabase
                 .from('user_profiles')
-                .upsert({
-                    id: session.user.id,
-                    ...newProfile,
-                    updated_at: new Date().toISOString()
-                });
+                .upsert(updates);
 
             if (updateError) throw updateError;
 
+            setProfileData(prev => ({ ...prev, avatar_url: publicUrl }));
+
             if (onProfileUpdate) {
-                onProfileUpdate(newProfile);
+                onProfileUpdate(updates);
             }
 
-            setSaved(true);
-            setTimeout(() => setSaved(false), 3000);
-        } catch (error) {
-            console.error('Error uploading avatar:', error);
-            alert('Error uploading avatar: ' + (error instanceof Error ? error.message : 'Unknown error'));
+            setMessage({ type: 'success', text: 'Avatar uploaded successfully' });
+
+        } catch (error: any) {
+            setMessage({ type: 'error', text: error.message });
         } finally {
-            setSaving(false);
+            setLoading(false);
         }
     };
 
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-                <Loader2 className="w-8 h-8 text-accent animate-spin" />
-                <p className="text-text-secondary animate-pulse">Loading Profile...</p>
-            </div>
-        );
-    }
+    const handleUpdatePassword = async () => {
+        if (!newPassword) return;
+
+        if (newPassword !== confirmPassword) {
+            setMessage({ type: 'error', text: 'Passwords do not match' });
+            return;
+        }
+
+        setLoading(true);
+        setMessage(null);
+
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: newPassword
+            });
+
+            if (error) throw error;
+            setMessage({ type: 'success', text: 'Password updated successfully' });
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (error: any) {
+            setMessage({ type: 'error', text: error.message });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleExportData = async () => {
+        setExporting(true);
+        try {
+            await exportTradeData({ userId: user.id, userEmail: user.email, includeUserSummary: true });
+        } catch (error) {
+            alert('Failed to export data. Please try again.');
+        } finally {
+            setExporting(false);
+        }
+    };
+
+
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Header Section */}
-            <div className="relative group p-1 rounded-3xl bg-gradient-to-r from-accent/20 via-blue-500/10 to-transparent">
-                <div className="glass-panel p-8 rounded-[22px] flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[80px] pointer-events-none" />
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-                    <div className="relative">
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleAvatarUpload}
-                            accept="image/*"
-                            className="hidden"
-                        />
-                        <div className="w-32 h-32 rounded-full bg-slate-800 border-2 border-accent/30 flex items-center justify-center shadow-2xl relative group-hover:border-accent transition-all duration-500">
-                            <div className="absolute inset-0 rounded-full overflow-hidden">
-                                {profile.avatar_url ? (
-                                    <img
-                                        src={profile.avatar_url}
-                                        alt="Avatar"
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <User className="w-16 h-16 text-accent/50 group-hover:text-accent transition-all duration-500" />
-                                )}
-                            </div>
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                className="absolute -bottom-2 -right-2 bg-accent text-background p-2 rounded-full shadow-lg cursor-pointer hover:scale-110 transition-transform z-10"
-                            >
-                                <PenSquare className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
 
-                    <div className="text-center md:text-left flex-1 space-y-2">
-                        <h1 className="text-3xl font-bold tracking-tight text-white">
-                            {profile.full_name || 'Anonymous Trader'}
-                        </h1>
-                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-text-secondary text-sm">
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/5">
-                                <Mail className="w-3.5 h-3.5" />
-                                {session.user.email}
-                            </div>
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent font-bold">
-                                PRO ACCOUNT
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                {/* Left Column: Personal Info */}
+                <div className="space-y-6">
+                    <div className="glass-panel p-6 space-y-6">
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Information Form */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="glass-panel p-6 rounded-2xl relative overflow-hidden">
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
-                                <User className="w-4 h-4 text-accent" />
-                            </div>
-                            <h2 className="text-lg font-bold tracking-tight">Personal Details</h2>
+                        <div className="flex items-center gap-3 text-accent-primary mb-2">
+                            <User size={20} />
+                            <h3 className="font-bold text-lg text-white">Personal Information</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-text-secondary uppercase tracking-widest ml-1">Full Name</label>
-                                <div className="relative group">
-                                    <div className="absolute left-3 top-3.5 w-4 h-4 text-text-secondary group-focus-within:text-accent transition-colors">
-                                        <User className="w-full h-full" />
-                                    </div>
+                        {/* Avatar Upload */}
+                        <div className="flex justify-center mb-6">
+                            <div className="relative group/avatar cursor-pointer">
+                                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-accent-primary/50 group-hover/avatar:border-accent-primary transition-all">
+                                    {profileData.avatar_url ? (
+                                        <img src={profileData.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full bg-[#0B0E14] flex items-center justify-center text-text-secondary">
+                                            <User size={32} />
+                                        </div>
+                                    )}
+                                </div>
+                                <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/avatar:opacity-100 transition-all rounded-full cursor-pointer">
+                                    <Camera className="w-8 h-8 text-white" />
                                     <input
-                                        type="text"
-                                        placeholder="Enter your name"
-                                        value={profile.full_name}
-                                        onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                                        className="w-full bg-surface border border-border rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleAvatarUpload}
+                                        className="hidden"
+                                    />
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">
+                                    Email Address
+                                </label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary w-4 h-4" />
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        disabled
+                                        className="w-full bg-[#0B0E14] border border-white/5 rounded-xl py-3 pl-10 pr-4 text-text-muted cursor-not-allowed"
                                     />
                                 </div>
                             </div>
 
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-text-secondary uppercase tracking-widest ml-1">Country</label>
-                                <div className="relative group">
-                                    <div className="absolute left-3 top-3.5 w-4 h-4 text-text-secondary group-focus-within:text-accent transition-colors">
-                                        <Globe className="w-full h-full" />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. United Kingdom"
-                                        value={profile.country}
-                                        onChange={(e) => setProfile({ ...profile, country: e.target.value })}
-                                        className="w-full bg-surface border border-border rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
-                                    />
-                                </div>
+                            <div>
+                                <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">
+                                    Full Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={profileData.full_name}
+                                    onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
+                                    className="w-full bg-[#0B0E14] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary transition-colors hover:border-white/20"
+                                    placeholder="Enter your name"
+                                />
                             </div>
                         </div>
+                    </div>
 
-                        <div className="mt-6 space-y-1.5">
-                            <label className="text-xs font-bold text-text-secondary uppercase tracking-widest ml-1">About Me</label>
+                    {/* About Me Section */}
+                    <div className="glass-panel p-6 space-y-6 flex flex-col">
+
+                        <div className="flex items-center gap-3 text-blue-400 mb-2">
+                            <User size={20} />
+                            <h3 className="font-bold text-lg text-white">About Me</h3>
+                        </div>
+
+                        <div className="flex-1">
+                            <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">
+                                Bio / Notes
+                            </label>
                             <textarea
-                                placeholder="Tell us about your trading journey..."
-                                rows={4}
-                                value={profile.bio}
-                                onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                                className="w-full bg-surface border border-border rounded-xl p-4 text-white placeholder:text-gray-700 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all resize-none"
+                                value={profileData.bio}
+                                onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                                className="w-full h-32 bg-[#0B0E14] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent-primary transition-colors hover:border-white/20 resize-none"
+                                placeholder="Tell us a bit about yourself..."
                             />
                         </div>
-                    </div>
 
-                    <div className="glass-panel p-6 rounded-2xl relative overflow-hidden">
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                                <TrendingUp className="w-4 h-4 text-blue-400" />
-                            </div>
-                            <h2 className="text-lg font-bold tracking-tight">Trading Persona</h2>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-text-secondary uppercase tracking-widest ml-1">Experience Level</label>
-                                <select
-                                    value={profile.experience_level}
-                                    onChange={(e) => setProfile({ ...profile, experience_level: e.target.value })}
-                                    className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-white focus:outline-none focus:border-accent transition-all appearance-none cursor-pointer"
-                                    style={{ backgroundImage: 'linear-gradient(45deg, transparent 50%, #475569 50%), linear-gradient(135deg, #475569 50%, transparent 50%)', backgroundPosition: 'calc(100% - 20px) calc(1em + 2px), calc(100% - 15px) calc(1em + 2px)', backgroundSize: '5px 5px, 5px 5px', backgroundRepeat: 'no-repeat' }}
-                                >
-                                    <option value="Beginner">Beginner (&lt; 1 Year)</option>
-                                    <option value="Intermediate">Intermediate (1-3 Years)</option>
-                                    <option value="Pro">Professional (3+ Years)</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-text-secondary uppercase tracking-widest ml-1">Trading Style</label>
-                                <select
-                                    value={profile.trading_style}
-                                    onChange={(e) => setProfile({ ...profile, trading_style: e.target.value })}
-                                    className="w-full bg-surface border border-border rounded-xl py-3 px-4 text-white focus:outline-none focus:border-accent transition-all appearance-none cursor-pointer"
-                                    style={{ backgroundImage: 'linear-gradient(45deg, transparent 50%, #475569 50%), linear-gradient(135deg, #475569 50%, transparent 50%)', backgroundPosition: 'calc(100% - 20px) calc(1em + 2px), calc(100% - 15px) calc(1em + 2px)', backgroundSize: '5px 5px, 5px 5px', backgroundRepeat: 'no-repeat' }}
-                                >
-                                    <option value="Scalper">Scalper</option>
-                                    <option value="Day Trader">Day Trader</option>
-                                    <option value="Swing Trader">Swing Trader</option>
-                                    <option value="Position Trader">Position Trader</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end pt-4">
                         <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold transition-all duration-300 ${saved
-                                ? 'bg-success text-background'
-                                : 'bg-accent text-background hover:scale-105 active:scale-95 hover:shadow-[0_0_20px_rgba(34,211,238,0.4)]'
-                                }`}
+                            onClick={handleUpdateProfile}
+                            disabled={loading}
+                            className="btn-primary w-full py-4 flex items-center justify-center gap-2 mt-auto shadow-lg shadow-accent/20 hover:shadow-accent/40 contrast-125"
                         >
-                            {saving ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : saved ? (
-                                <>
-                                    <CheckCircle className="w-5 h-5" /> Saved!
-                                </>
-                            ) : (
-                                <>
-                                    <Save className="w-5 h-5" /> Save Profile
-                                </>
-                            )}
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                            Save Profile
                         </button>
                     </div>
                 </div>
 
-                {/* Account Stats / Badges */}
-                <div className="space-y-8">
-                    <div className="glass-panel p-6 rounded-2xl relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <h3 className="text-sm font-bold text-text-secondary uppercase tracking-widest mb-6">Your Statistics</h3>
+                {/* Right Column: Security */}
+                <div className="glass-panel p-6 h-full flex flex-col">
 
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-lg bg-surface flex items-center justify-center border border-white/5">
-                                    <TrendingUp className="w-5 h-5 text-accent" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-text-secondary font-medium">Trader Level</p>
-                                    <p className="text-white font-bold">{profile.experience_level}</p>
-                                </div>
-                            </div>
+                    <div className="flex items-center gap-3 text-orange-500 mb-8">
+                        <Lock size={20} />
+                        <h3 className="font-bold text-lg text-white">Security Settings</h3>
+                    </div>
 
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-lg bg-surface flex items-center justify-center border border-white/5">
-                                    <Briefcase className="w-5 h-5 text-blue-400" />
+                    <div className="space-y-8 flex-1">
+                        {/* Password Update */}
+                        <div>
+                            <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-4">
+                                Update Password
+                            </label>
+                            <div className="space-y-3">
+                                <div className="relative">
+                                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary w-4 h-4" />
+                                    <input
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        placeholder="New Password"
+                                        className="w-full bg-[#0B0E14] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-orange-500/50 transition-colors placeholder:text-text-muted hover:border-white/20"
+                                    />
                                 </div>
-                                <div>
-                                    <p className="text-xs text-text-secondary font-medium">Main Strategy</p>
-                                    <p className="text-white font-bold">{profile.trading_style}</p>
+                                <div className="relative">
+                                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary w-4 h-4" />
+                                    <input
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        placeholder="Confirm Password"
+                                        className="w-full bg-[#0B0E14] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-orange-500/50 transition-colors placeholder:text-text-muted hover:border-white/20"
+                                    />
                                 </div>
+
+
+
+                                <button
+                                    onClick={handleUpdatePassword}
+                                    disabled={loading || !newPassword}
+                                    className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs uppercase tracking-widest transition-all border border-white/10 hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                                >
+                                    {loading ? 'Updating...' : 'Reset Password'}
+                                </button>
                             </div>
                         </div>
 
-                        <div className="mt-8 pt-8 border-t border-white/5">
-                            <div className="p-4 rounded-xl bg-accent/5 border border-accent/10">
-                                <p className="text-[10px] text-accent font-bold uppercase tracking-widest mb-1">Status</p>
-                                <p className="text-white text-sm">Account Verified and optimized for high performance.</p>
+                        <div className="border-t border-white/5 my-6"></div>
+
+                        {/* Account Actions */}
+                        <div>
+                            <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-4">
+                                Account Actions
+                            </label>
+                            <div className="space-y-3">
+                                <button
+                                    onClick={handleExportData}
+                                    disabled={exporting}
+                                    className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                                        Export Data
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => setIsDeleteModalOpen(true)}
+                                    className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-red-500 hover:bg-red-600 text-white transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-red-500/20 border-none animate-pulse-slow"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <AlertOctagon className="w-4 h-4" />
+                                        Delete Account
+                                    </div>
+                                </button>
+                                <p className="text-[10px] text-red-400/60 text-center font-bold uppercase tracking-widest mt-2">
+                                    Caution: Deleting your account will erase all data permanently
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+
+
+            <DeleteAccountModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onSuccess={async () => {
+                    await supabase.auth.signOut();
+                    window.location.href = '/';
+                }}
+            />
+
+            {/* Toast Message */}
+            {message && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+                    <div className={`px-6 py-3 rounded-xl border backdrop-blur-md shadow-2xl flex items-center gap-3 ${message.type === 'success'
+                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                        : 'bg-red-500/10 border-red-500/20 text-red-400'
+                        }`}>
+                        {message.type === 'success' ? (
+                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        ) : (
+                            <AlertTriangle size={16} />
+                        )}
+                        <span className="font-bold text-sm tracking-wide">{message.text}</span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
+
+export default UserProfile;

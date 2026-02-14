@@ -4,11 +4,12 @@ import { supabase } from '../supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { Clock, ChevronDown, ChevronUp, ImageIcon, Upload, Clipboard, Trash2, FileDown, Loader2 } from 'lucide-react';
 import { ImageModal } from './ImageModal';
-import * as XLSX from 'xlsx';
+import { exportTradeData } from '../utils/exportUtils';
 
 interface HistoryProps {
     session: Session;
     isInline?: boolean;
+    hideSelection?: boolean;
 }
 
 interface SessionRecord {
@@ -33,7 +34,7 @@ interface TradeDetail {
     image_url?: string;
 }
 
-export const History = ({ session, isInline = false }: HistoryProps) => {
+export const History = ({ session, isInline = false, hideSelection = false }: HistoryProps) => {
     const [history, setHistory] = useState<SessionRecord[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -52,76 +53,10 @@ export const History = ({ session, isInline = false }: HistoryProps) => {
     const handleExportReport = async () => {
         setExporting(true);
         try {
-            // 1. Determine target sessions
-            const targetSessions = selectedSessionIds.length > 0
-                ? history.filter(s => selectedSessionIds.includes(s.id))
-                : history;
-
-            if (targetSessions.length === 0) {
-                alert('No sessions available to export.');
-                return;
-            }
-
-            const targetIds = targetSessions.map(s => s.id);
-
-            // 2. Fetch all trades for these sessions
-            const { data: allTrades, error: tradesError } = await supabase
-                .from('trades')
-                .select('*')
-                .in('session_id', targetIds)
-                .order('created_at', { ascending: true });
-
-            if (tradesError) throw tradesError;
-
-            // 3. Format Session Summary Data
-            const sessionData = targetSessions.map(s => {
-                const profit = s.final_capital - s.initial_capital;
-                const winRate = s.total_trades > 0
-                    ? ((s.total_wins / s.total_trades) * 100).toFixed(1) + '%'
-                    : '0%';
-
-                return {
-                    'Session #': s.session_number,
-                    'Date': new Date(s.created_at).toLocaleDateString(),
-                    'Start Time': new Date(s.created_at).toLocaleTimeString(),
-                    'End Time': s.completed_at ? new Date(s.completed_at).toLocaleTimeString() : '-',
-                    'Initial Capital': s.initial_capital,
-                    'Final Capital': s.final_capital,
-                    'Trades': s.total_trades,
-                    'Wins': s.total_wins,
-                    'Win Rate': winRate,
-                    'Outcome': s.outcome,
-                    'Net P&L': profit.toFixed(2)
-                };
+            await exportTradeData({
+                userId: session.user.id,
+                sessionIds: selectedSessionIds.length > 0 ? selectedSessionIds : undefined
             });
-
-            // 4. Format Trade Details Data
-            const tradeData = allTrades.map(t => {
-                const session = targetSessions.find(s => s.id === t.session_id);
-                return {
-                    'Session #': session?.session_number || '?',
-                    'Trade #': t.trade_index + 1,
-                    'Time': new Date(t.created_at).toLocaleTimeString(),
-                    'Amount': t.amount,
-                    'Result': t.result,
-                    'Equity After': t.portfolio_after,
-                    'Evidence URL': t.image_url || 'None'
-                };
-            });
-
-            // 5. Create Excel Workbook
-            const wb = XLSX.utils.book_new();
-
-            const wsSessions = XLSX.utils.json_to_sheet(sessionData);
-            const wsTrades = XLSX.utils.json_to_sheet(tradeData);
-
-            XLSX.utils.book_append_sheet(wb, wsSessions, 'Sessions Summary');
-            XLSX.utils.book_append_sheet(wb, wsTrades, 'Trade Details');
-
-            // 6. Download
-            const timestamp = new Date().toISOString().split('T')[0];
-            XLSX.writeFile(wb, `TradeFlow_Report_${timestamp}.xlsx`);
-
         } catch (error) {
             console.error('Error exporting report:', error);
             alert('Failed to export report. Please try again.');
@@ -378,28 +313,30 @@ export const History = ({ session, isInline = false }: HistoryProps) => {
                 </div>
             ) : (
                 <table className="w-full text-left text-sm relative border-collapse">
-                    <thead className="sticky top-0 z-10 border-b border-white/10 shadow-xl">
-                        <tr className="bg-slate-900/95 backdrop-blur-sm">
-                            <th className="px-6 py-5 w-10">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedSessionIds.length === history.length && history.length > 0}
-                                    onChange={handleSelectAll}
-                                    className="rounded border-white/20 bg-white/5 text-accent focus:ring-accent cursor-pointer"
-                                />
-                            </th>
-                            <th className="px-6 py-5 font-black text-accent uppercase tracking-widest text-[10px]">Session</th>
-                            <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px]">Date</th>
+                    <thead className="sticky top-0 z-10 border-b border-white/5 shadow-2xl">
+                        <tr className="bg-[#0B0E14]/90 backdrop-blur-xl">
+                            {!hideSelection && (
+                                <th className="px-6 py-6 w-10">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedSessionIds.length === history.length && history.length > 0}
+                                        onChange={handleSelectAll}
+                                        className="rounded border-white/20 bg-white/5 text-accent focus:ring-accent cursor-pointer"
+                                    />
+                                </th>
+                            )}
+                            <th className="px-6 py-6 font-medium text-text-secondary uppercase tracking-widest text-xs">ID</th>
+                            <th className="px-6 py-6 font-medium text-text-secondary uppercase tracking-widest text-xs">Date</th>
                             {!isInline && (
                                 <>
-                                    <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px]">Start</th>
-                                    <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px]">End</th>
+                                    <th className="px-6 py-6 font-medium text-text-secondary uppercase tracking-widest text-xs">Start Time</th>
+                                    <th className="px-6 py-6 font-medium text-text-secondary uppercase tracking-widest text-xs">End Time</th>
                                 </>
                             )}
-                            <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px] text-center">Trades</th>
-                            <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px] text-center">Win Rate</th>
-                            <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px] text-center">Outcome</th>
-                            <th className="px-6 py-5 font-black text-white uppercase tracking-widest text-[10px] text-right">Net P&L</th>
+                            <th className="px-6 py-6 font-medium text-text-secondary uppercase tracking-widest text-xs text-center">Trades</th>
+                            <th className="px-6 py-6 font-medium text-text-secondary uppercase tracking-widest text-xs text-center">Win Rate</th>
+                            <th className="px-6 py-6 font-medium text-text-secondary uppercase tracking-widest text-xs text-center">Outcome</th>
+                            <th className="px-6 py-6 font-medium text-text-secondary uppercase tracking-widest text-xs text-right">Profit/Loss</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -413,15 +350,17 @@ export const History = ({ session, isInline = false }: HistoryProps) => {
 
                             return (
                                 <Fragment key={record.id}>
-                                    <tr className={`hover:bg-white/5 transition-colors group ${isExpanded ? 'bg-white/5' : ''}`}>
-                                        <td className="px-6 py-4 w-10">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedSessionIds.includes(record.id)}
-                                                onChange={() => handleSelectSession(record.id)}
-                                                className="rounded border-white/20 bg-white/5 text-accent focus:ring-accent cursor-pointer"
-                                            />
-                                        </td>
+                                    <tr className={`hover:bg-accent/5 transition-all duration-300 group ${isExpanded ? 'bg-accent/10' : ''} border-b border-white/5`}>
+                                        {!hideSelection && (
+                                            <td className="px-6 py-4 w-10">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedSessionIds.includes(record.id)}
+                                                    onChange={() => handleSelectSession(record.id)}
+                                                    className="rounded border-white/20 bg-white/5 text-accent focus:ring-accent cursor-pointer"
+                                                />
+                                            </td>
+                                        )}
                                         <td className="px-6 py-4">
                                             <button
                                                 onClick={() => toggleSession(record.id)}
@@ -458,42 +397,44 @@ export const History = ({ session, isInline = false }: HistoryProps) => {
                                                 {record.outcome || 'N/A'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-6 py-5 text-right">
                                             <div className="flex flex-col items-end">
-                                                <span className={`font-mono font-bold ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                    {isProfit ? '+' : ''}{profit.toFixed(2)}
+                                                <span className={`font-bold text-lg ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                    {isProfit ? '+' : ''}${profit.toFixed(2)}
                                                 </span>
-                                                <span className="text-[10px] text-text-secondary">
-                                                    ${record.initial_capital.toFixed(0)} → ${record.final_capital.toFixed(0)}
+                                                <span className="text-[10px] text-text-secondary uppercase tracking-tight opacity-50">
+                                                    Session Return
                                                 </span>
                                             </div>
                                         </td>
                                     </tr>
                                     {isExpanded && (
-                                        <tr className="bg-surface/30">
-                                            <td colSpan={isInline ? 7 : 9} className="p-4">
-                                                <div className="bg-black/40 rounded-xl p-4 border border-white/5">
-                                                    <h4 className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-3">Session Trades</h4>
+                                        <tr className="bg-transparent">
+                                            <td colSpan={isInline ? (hideSelection ? 6 : 7) : (hideSelection ? 8 : 9)} className="px-6 py-0">
+                                                <div className="glass-panel rounded-3xl p-6 mb-6 mt-2 relative overflow-hidden group/detail">
+                                                    <div className="absolute inset-0 bg-accent/5 opacity-0 group-hover/detail:opacity-100 transition-opacity pointer-events-none" />
+                                                    <h4 className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-4">Trade Breakdown</h4>
                                                     {loadingTrades[record.id] ? (
-                                                        <div className="text-center py-4 text-xs text-text-secondary">Loading trades...</div>
+                                                        <div className="text-center py-8 text-xs text-text-secondary animate-pulse">Loading trades...</div>
                                                     ) : (
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                                             {tradesCache[record.id]?.map((trade, idx) => (
-                                                                <div key={idx} className="bg-panel border border-white/5 p-3 rounded-lg flex flex-col gap-3 group/trade relative overflow-hidden">
+                                                                <div key={idx} className="bg-[#0B0E14]/80 backdrop-blur-xl border border-white/10 p-5 rounded-2xl flex flex-col gap-4 group/trade relative overflow-hidden active:scale-95 transition-transform">
+                                                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/5 to-transparent h-1/2 w-full top-0 opacity-0 group-hover/trade:opacity-100 group-hover/trade:animate-scan pointer-events-none" />
                                                                     <div className="flex items-center justify-between">
                                                                         <div className="flex flex-col">
-                                                                            <span className="text-[10px] font-mono text-text-secondary opacity-70">
+                                                                            <span className="text-xs font-bold text-accent">
                                                                                 Trade #{idx + 1}
                                                                             </span>
-                                                                            <span className="text-xs font-mono text-text-secondary">
+                                                                            <span className="text-[10px] text-text-secondary opacity-60">
                                                                                 {formatTime(trade.created_at)}
                                                                             </span>
                                                                         </div>
-                                                                        <div className="flex items-center gap-2">
+                                                                        <div className="flex items-center gap-2 relative z-10">
                                                                             {trade.image_url ? (
                                                                                 <button
                                                                                     onClick={() => setViewImage(trade.image_url!)}
-                                                                                    className="p-1.5 rounded bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
+                                                                                    className="p-2 rounded-xl bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all"
                                                                                     title="View Evidence"
                                                                                 >
                                                                                     <ImageIcon size={14} />
@@ -524,9 +465,9 @@ export const History = ({ session, isInline = false }: HistoryProps) => {
                                                                             </span>
                                                                         </div>
                                                                     </div>
-                                                                    <div className="flex items-center justify-between font-mono text-sm pt-2 border-t border-white/5">
-                                                                        <span className="font-bold text-white">${trade.amount.toFixed(2)}</span>
-                                                                        <span className="text-blue-300 opacity-60">→ ${trade.portfolio_after.toFixed(2)}</span>
+                                                                    <div className="flex items-center justify-between font-mono text-sm pt-4 border-t border-white/5">
+                                                                        <span className="font-black text-white text-base tracking-tighter">${trade.amount.toFixed(2)}</span>
+                                                                        <span className="text-blue-400 font-bold opacity-80 text-xs tracking-widest">→ ${trade.portfolio_after.toFixed(0)}</span>
                                                                     </div>
                                                                 </div>
                                                             ))}
@@ -553,45 +494,52 @@ export const History = ({ session, isInline = false }: HistoryProps) => {
 
     // Full Page View
     return (
-        <div className="h-full flex flex-col gap-6">
-            <div className="glass-panel p-6 rounded-2xl flex-1 flex flex-col min-h-0 border border-white/5 bg-panel/50 relative">
+        <div className="h-full flex flex-col gap-6 animate-in fade-in duration-1000">
+            <div className="glass-panel p-8 rounded-3xl flex-1 flex flex-col min-h-0 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-accent/5 rounded-full blur-[100px] pointer-events-none transition-colors" />
+                <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
 
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-0">
-                            <Clock className="w-5 h-5 text-accent" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center border border-accent/20 shadow-[0_0_20px_rgba(34,211,238,0.2)]">
+                            <Clock className="w-7 h-7 text-accent" />
                         </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-white tracking-tight">Session Log</h2>
-                            <p className="text-xs text-text-secondary">Full history of all completed sessions</p>
+                        <div className="space-y-1">
+                            <h2 className="text-2xl font-bold text-white tracking-tight">Session History</h2>
+                            <p className="text-xs text-text-secondary opacity-60 uppercase tracking-widest">Review your past performance</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 pr-12">
+                    <div className="flex items-center gap-3">
                         {selectedSessionIds.length > 0 && (
                             <button
                                 onClick={handleDeleteSessions}
                                 disabled={deleting}
-                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-all text-sm font-bold"
+                                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white transition-all text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-500/20 active:scale-95 group overflow-hidden relative"
                             >
-                                <Trash2 size={16} />
-                                {deleting ? 'Deleting...' : `Delete (${selectedSessionIds.length})`}
+                                <span className="relative z-10 flex items-center gap-2">
+                                    <Trash2 size={14} />
+                                    {deleting ? 'DELETING...' : `PURGE SESSION (${selectedSessionIds.length})`}
+                                </span>
                             </button>
                         )}
                         <button
                             onClick={handleExportReport}
                             disabled={exporting || history.length === 0}
-                            title="Export Report"
-                            className={`p-2.5 rounded-xl transition-all shadow-lg active:scale-95 ${exporting || history.length === 0
+                            title="Export XLSX Report"
+                            className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all shadow-xl active:scale-90 border-none font-black text-[10px] uppercase tracking-widest group relative overflow-hidden ${exporting || history.length === 0
                                 ? 'bg-white/5 text-slate-500 cursor-not-allowed opacity-50'
-                                : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 shadow-emerald-500/10'
+                                : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20'
                                 }`}
                         >
-                            {exporting ? (
-                                <Loader2 size={18} className="animate-spin" />
-                            ) : (
-                                <FileDown size={18} />
-                            )}
+                            <span className="relative z-10 flex items-center gap-2">
+                                {exporting ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <FileDown size={16} />
+                                )}
+                                Export Report
+                            </span>
                         </button>
                     </div>
                 </div>

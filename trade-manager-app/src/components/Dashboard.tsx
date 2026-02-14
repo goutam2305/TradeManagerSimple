@@ -45,7 +45,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     })();
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 w-full mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 w-full mb-10 pt-4">
             <StatCard
                 label="NET P&L"
                 value={`$${currentPortfolio.toFixed(2)}`}

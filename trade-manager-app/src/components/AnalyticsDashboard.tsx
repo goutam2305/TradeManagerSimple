@@ -6,10 +6,11 @@ import { EquityChart } from './dashboard/EquityChart';
 import { TradingCalendar } from './dashboard/TradingCalendar';
 import { fetchAnalyticsData, AnalyticsData } from '../lib/analytics';
 import { Session } from '@supabase/supabase-js';
+import { OnboardingView } from './dashboard/OnboardingView';
 
 interface DashboardProps {
     session: Session | null;
-    currentPortfolio: number; // For fallback/live updates
+    currentPortfolio: number;
     initialCapital: number;
     targetWins: number;
     currentWins: number;
@@ -17,12 +18,14 @@ interface DashboardProps {
     stopLossLimit: number;
     stopLossEnabled: boolean;
     sessionCount: number;
+    onNavigate: (view: 'trade' | 'settings' | 'history') => void;
 }
 
 export const AnalyticsDashboard: React.FC<DashboardProps> = ({
     session,
     initialCapital,
-    sessionCount
+    sessionCount,
+    onNavigate
 }) => {
     const [data, setData] = useState<AnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -50,6 +53,10 @@ export const AnalyticsDashboard: React.FC<DashboardProps> = ({
     }
 
     if (!data) return null;
+
+    if (data.totalTrades === 0) {
+        return <OnboardingView onNavigate={onNavigate} />;
+    }
 
     // Filter Equity Curve based on selected time range
     const getFilteredEquityCurve = () => {
@@ -133,20 +140,20 @@ export const AnalyticsDashboard: React.FC<DashboardProps> = ({
             {/* Middle Row: Equity Curve & Calendar */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[350px]">
                 {/* Equity Curve (Takes up 2/3) */}
-                <div className="lg:col-span-2 bg-panel border border-white/5 rounded-2xl p-4 flex flex-col">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-sm font-bold text-text-secondary uppercase tracking-widest">Equity Curve</h3>
-                        <div className="flex bg-surface/50 p-1 rounded-lg border border-white/5">
+                <div className="lg:col-span-2 glass-panel p-8 flex flex-col relative overflow-hidden group">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                        <h3 className="text-[10px] font-black text-accent uppercase tracking-[0.4em]">Equity Trajectory Alpha</h3>
+                        <div className="flex bg-[#0B0E14]/50 p-1.5 rounded-xl border border-white/10 backdrop-blur-md">
                             {(['today', 'week', 'month', 'all'] as const).map((range) => (
                                 <button
                                     key={range}
                                     onClick={() => setTimeRange(range)}
-                                    className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${timeRange === range
-                                        ? 'bg-accent text-white shadow-lg'
-                                        : 'text-text-secondary hover:text-white'
+                                    className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden group/btn ${timeRange === range
+                                        ? 'bg-accent text-white shadow-lg shadow-accent/20'
+                                        : 'text-text-secondary hover:text-white hover:bg-white/5'
                                         }`}
                                 >
-                                    {range === 'all' ? 'All Time' : range}
+                                    <span className="relative z-10">{range === 'all' ? 'All Time' : range}</span>
                                 </button>
                             ))}
                         </div>
