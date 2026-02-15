@@ -16,9 +16,10 @@ interface TradeLogProps {
     onReset: () => void;
     onUploadEvidence?: (index: number, file: File) => Promise<void>;
     onViewEvidence?: (imageUrl: string) => void;
+    isReadOnly?: boolean;
 }
 
-export const TradeLog: React.FC<TradeLogProps> = ({ trades, onReset, onUploadEvidence, onViewEvidence }) => {
+export const TradeLog: React.FC<TradeLogProps> = ({ trades, onReset, onUploadEvidence, onViewEvidence, isReadOnly }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const selectedTradeIndex = useRef<number | null>(null);
 
@@ -62,13 +63,15 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades, onReset, onUploadEvi
                 <div className="flex items-center gap-3">
                     <h2 className="text-lg font-bold text-white">Session Log</h2>
                 </div>
-                <button
-                    onClick={onReset}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/50 text-red-400 hover:bg-red-500/20 hover:border-red-500 hover:text-red-300 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)] hover:shadow-[0_0_25px_rgba(239,68,68,0.2)] uppercase tracking-widest active:scale-95 group"
-                >
-                    <RotateCcw size={12} className="group-hover:rotate-180 transition-transform duration-500" />
-                    Reset Session
-                </button>
+                {!isReadOnly && (
+                    <button
+                        onClick={onReset}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/50 text-red-400 hover:bg-red-500/20 hover:border-red-500 hover:text-red-300 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)] hover:shadow-[0_0_25px_rgba(239,68,68,0.2)] uppercase tracking-widest active:scale-95 group"
+                    >
+                        <RotateCcw size={12} className="group-hover:rotate-180 transition-transform duration-500" />
+                        Reset Session
+                    </button>
+                )}
             </div>
 
             <input
@@ -117,7 +120,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades, onReset, onUploadEvi
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => triggerUpload(idx)}
-                                                disabled={!trade.dbId}
+                                                disabled={!trade.dbId || isReadOnly}
                                                 className="p-2 rounded-xl bg-white/5 border border-white/10 text-text-secondary hover:text-accent hover:bg-accent/10 hover:border-accent/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                                                 title="Upload Intel"
                                             >
@@ -125,7 +128,7 @@ export const TradeLog: React.FC<TradeLogProps> = ({ trades, onReset, onUploadEvi
                                             </button>
                                             <button
                                                 onClick={() => handlePaste(idx)}
-                                                disabled={!trade.dbId}
+                                                disabled={!trade.dbId || isReadOnly}
                                                 className="p-2 rounded-xl bg-white/5 border border-white/10 text-text-secondary hover:text-accent hover:bg-accent/10 hover:border-accent/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                                                 title="Paste Intel"
                                             >

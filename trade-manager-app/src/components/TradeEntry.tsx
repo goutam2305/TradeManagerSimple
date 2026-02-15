@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react';
+import { TrendingUp, TrendingDown, Check, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface TradeEntryProps {
@@ -7,9 +7,10 @@ interface TradeEntryProps {
     onResult: (result: 'W' | 'L') => void;
     disabled?: boolean;
     isRiskCritical?: boolean;
+    isReadOnly?: boolean;
 }
 
-export const TradeEntry: React.FC<TradeEntryProps> = ({ amount, onResult, disabled, isRiskCritical }) => {
+export const TradeEntry: React.FC<TradeEntryProps> = ({ amount, onResult, disabled, isRiskCritical, isReadOnly }) => {
     const [copied, setCopied] = useState(false);
     const [localProcessing, setLocalProcessing] = useState(false);
 
@@ -21,7 +22,7 @@ export const TradeEntry: React.FC<TradeEntryProps> = ({ amount, onResult, disabl
     };
 
     const handleResult = (result: 'W' | 'L') => {
-        if (localProcessing || disabled || amount === 0) return;
+        if (localProcessing || disabled || isReadOnly || amount === 0) return;
         setLocalProcessing(true);
         onResult(result);
         // Reset local processing state slightly after to allow parent state to catch up
@@ -62,18 +63,35 @@ export const TradeEntry: React.FC<TradeEntryProps> = ({ amount, onResult, disabl
                 <button
                     onClick={() => handleResult('W')}
                     disabled={disabled || amount === 0 || localProcessing}
-                    className="flex-1 bg-emerald-500/10 border border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500 hover:text-emerald-300 py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] flex flex-col items-center gap-3 transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed group active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.1)] hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]"
+                    className={`flex-1 py-8 rounded-3xl border transition-all flex flex-col items-center gap-3 group relative overflow-hidden ${isReadOnly
+                        ? 'bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10 hover:border-amber-500/30'
+                        : 'bg-emerald-500/5 border-emerald-500/10 hover:bg-emerald-500/10 hover:border-emerald-500/20'
+                        }`}
                 >
-                    <ThumbsUp className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
-                    <span className="font-black text-emerald-400 group-hover:text-emerald-300">Confirm Yield</span>
+                    <div className={`p-4 rounded-2xl transition-all ${isReadOnly ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
+                        }`}>
+                        <TrendingUp size={32} />
+                    </div>
+                    <span className={`font-black text-xs uppercase tracking-[0.2em] transition-colors ${isReadOnly ? 'text-amber-500/70' : 'text-emerald-500/70'
+                        }`}>
+                        {isReadOnly ? 'Sim Win' : 'Confirm Yield'}
+                    </span>
                 </button>
+
                 <button
                     onClick={() => handleResult('L')}
                     disabled={disabled || amount === 0 || localProcessing}
-                    className="flex-1 bg-red-500/10 border border-red-500/50 text-red-400 hover:bg-red-500/20 hover:border-red-500 hover:text-red-300 py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] flex flex-col items-center gap-3 transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed group active:scale-95 shadow-[0_0_20px_rgba(239,68,68,0.1)] hover:shadow-[0_0_30px_rgba(239,68,68,0.2)]"
+                    className={`flex-1 py-8 rounded-3xl border transition-all flex flex-col items-center gap-3 group relative overflow-hidden ${isReadOnly
+                        ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/10 hover:border-red-500/30'
+                        : 'bg-red-500/5 border-red-500/10 hover:bg-red-500/10 hover:border-red-500/20'
+                        }`}
                 >
-                    <ThumbsDown className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
-                    <span className="font-black text-red-400 group-hover:text-red-300">Report Slips</span>
+                    <div className="p-4 bg-red-500/10 rounded-2xl text-red-500 group-hover:scale-110 transition-transform">
+                        <TrendingDown size={32} />
+                    </div>
+                    <span className="text-red-500/70 font-black text-xs uppercase tracking-[0.2em]">
+                        {isReadOnly ? 'Sim Loss' : 'Report Slips'}
+                    </span>
                 </button>
             </div>
 

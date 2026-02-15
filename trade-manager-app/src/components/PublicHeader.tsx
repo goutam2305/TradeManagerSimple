@@ -5,10 +5,19 @@ interface PublicHeaderProps {
     onGetStarted: () => void;
     onLogin: () => void;
     onFeatures: () => void;
+    onPricing: () => void;
     onHome: () => void;
+    onBlog?: () => void;
 }
 
-export const PublicHeader: React.FC<PublicHeaderProps> = ({ onGetStarted, onLogin, onFeatures, onHome }) => {
+export const PublicHeader: React.FC<PublicHeaderProps> = ({
+    onGetStarted,
+    onLogin,
+    onFeatures,
+    onPricing,
+    onHome,
+    onBlog
+}) => {
     return (
         <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-background/80 backdrop-blur-md">
             <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -20,7 +29,10 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ onGetStarted, onLogi
                 </button>
                 <div className="hidden md:flex items-center gap-8 text-sm font-medium text-text-secondary">
                     <button onClick={onFeatures} className="hover:text-white transition-colors uppercase tracking-widest text-[10px]">Features</button>
-                    <a href="#" className="hover:text-white transition-colors uppercase tracking-widest text-[10px]">Pricing</a>
+                    <button onClick={onPricing} className="hover:text-white transition-colors uppercase tracking-widest text-[10px]">Pricing</button>
+                    {onBlog && (
+                        <button onClick={onBlog} className="hover:text-white transition-colors uppercase tracking-widest text-[10px]">Blog</button>
+                    )}
                 </div>
                 <div className="flex items-center gap-4">
                     <button

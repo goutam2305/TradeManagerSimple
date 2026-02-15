@@ -1,5 +1,7 @@
-import { LayoutDashboard, Minimize2, History as HistoryIcon, Calculator, User, LogOut, Menu, X, Settings } from 'lucide-react';
+import { LayoutDashboard, Minimize2, History as HistoryIcon, Calculator, User, LogOut, Menu, X, Settings, Shield, Clock, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
+import { AccessStatus, AccessType } from '../lib/useAccess';
+import { isAdmin as checkIsAdmin } from '../config/adminConfig';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -11,6 +13,10 @@ interface LayoutProps {
     onNavigate: (view: string) => void;
     pageTitle?: string;
     avatarUrl?: string;
+    accessStatus: AccessStatus;
+    accessType: AccessType;
+    planTier?: string | null;
+    validUntil?: string | null;
 }
 
 export const Layout: React.FC<LayoutProps> = ({
@@ -22,15 +28,31 @@ export const Layout: React.FC<LayoutProps> = ({
     activeView,
     onNavigate,
     pageTitle = 'Analytics Dashboard',
-    avatarUrl
+    avatarUrl,
+    accessStatus,
+    accessType,
+    planTier,
+    validUntil
 }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    const isAdmin = checkIsAdmin(userEmail);
+    const isTrial = planTier === 'trial';
+
+    const getDaysLeft = () => {
+        if (!validUntil) return null;
+        const diff = new Date(validUntil).getTime() - new Date().getTime();
+        return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    };
+
+    const daysLeft = getDaysLeft();
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'trademanager', label: 'Trade Manager', icon: Minimize2 },
         { id: 'history', label: 'Session Log', icon: HistoryIcon },
         { id: 'calculator', label: 'Calculator', icon: Calculator },
+        ...(isAdmin ? [{ id: 'admin', label: 'Admin Review', icon: ShieldCheck }] : []),
         { id: 'settings', label: 'Settings', icon: Settings, action: onToggleSettings },
     ];
 
@@ -149,10 +171,54 @@ export const Layout: React.FC<LayoutProps> = ({
                             </div>
                             <div className="flex-1 min-w-0 text-left">
                                 <p className="text-sm font-bold text-white truncate">{userName || userEmail?.split('@')[0] || 'Trader'}</p>
-                                <p className="text-[10px] text-text-secondary uppercase tracking-wider">Pro Plan</p>
+                                <div className="flex items-center gap-1.5 pt-0.5">
+                                    {accessStatus === 'active' ? (
+                                        <>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
+                                            <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                                                {accessType === 'subscription' ? 'Pro Plan' : 'Affiliate Access'}
+                                            </p>
+                                        </>
+                                    ) : accessStatus === 'pending' ? (
+                                        <>
+                                            <Clock className="w-2.5 h-2.5 text-amber-400" />
+                                            <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Pending</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${accessType === 'affiliate' ? 'bg-amber-500 shadow-[0_0_5px_rgba(245,158,11,0.5)]' : 'bg-red-500/50'}`} />
+                                            <p className={`text-[10px] font-bold uppercase tracking-wider ${accessType === 'affiliate' ? 'text-amber-400' : 'text-text-secondary'}`}>
+                                                {accessType === 'affiliate' ? 'Pending Proof' : 'Restricted'}
+                                            </p>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
+                    {isTrial && daysLeft !== null && (
+                        <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-accent/20 to-blue-600/10 border border-accent/20 relative overflow-hidden group/trial">
+                            <div className="absolute inset-0 bg-accent/5 animate-pulse" />
+                            <div className="relative z-10">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[10px] font-black text-accent uppercase tracking-widest">Trial Period</span>
+                                    <span className="text-[10px] font-black text-white bg-accent px-2 py-0.5 rounded-full">{daysLeft} days left</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-accent transition-all duration-1000"
+                                        style={{ width: `${(daysLeft / 7) * 100}%` }}
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => onNavigate('pricing')}
+                                    className="w-full mt-3 py-2 bg-accent/10 hover:bg-accent text-accent hover:text-background border border-accent/20 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
+                                >
+                                    Upgrade Now
+                                </button>
+                            </div>
+                        </div>
+                    )}
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -176,10 +242,59 @@ export const Layout: React.FC<LayoutProps> = ({
                     </div>
 
                     <div className="flex items-center gap-4">
+                        {/* Removed redundant header upgrade button to declutter */}
                     </div>
                 </header>
 
                 <div className="flex-1 p-6 overflow-y-auto">
+                    {accessStatus === 'pending' && (
+                        <div className="mb-8 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500">
+                                    <Clock className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-amber-400 uppercase tracking-wide">Verification Pending</p>
+                                    <p className="text-[10px] text-amber-400/60 font-bold uppercase tracking-wider">We're reviewing your affiliate details. Full access will be granted soon.</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {(accessStatus === 'inactive' || accessStatus === 'expired') && activeView !== 'profile' && activeView !== 'pricing' && (
+                        <div className="mb-8 p-4 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center text-accent">
+                                    <Shield className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-accent uppercase tracking-wide">
+                                        {accessStatus === 'expired' ? 'Subscription Expired' : 'Read-Only Mode Active'}
+                                    </p>
+                                    <p className="text-[10px] text-accent/60 font-bold uppercase tracking-wider">
+                                        {accessType === 'affiliate'
+                                            ? 'Your account is pending verification. Submit your Telegram proof to unlock full access.'
+                                            : 'Full access is restricted. Unlock institutional tools with a plan or affiliate link.'}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    if (accessType === 'affiliate') {
+                                        onNavigate('dashboard');
+                                        setTimeout(() => {
+                                            document.getElementById('affiliate-verification-banner')?.scrollIntoView({ behavior: 'smooth' });
+                                        }, 100);
+                                    } else {
+                                        onNavigate('pricing');
+                                    }
+                                }}
+                                className="px-6 py-2 bg-accent text-background rounded-lg text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg pulse-glow"
+                            >
+                                {accessType === 'affiliate' ? 'Submit Proof to Get Access' : 'Upgrade Now'}
+                            </button>
+                        </div>
+                    )}
                     {children}
                 </div>
             </main>

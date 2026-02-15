@@ -168,6 +168,6 @@ export const AnalyticsDashboard: React.FC<DashboardProps> = ({
                     <TradingCalendar data={data.calendarData} />
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

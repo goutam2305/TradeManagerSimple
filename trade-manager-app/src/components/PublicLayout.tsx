@@ -7,10 +7,12 @@ interface PublicLayoutProps {
     onGetStarted: () => void;
     onLogin: () => void;
     onFeatures: () => void;
+    onPricing: () => void;
     onHome: () => void;
     onPrivacy: () => void;
     onTerms: () => void;
     onSecurity: () => void;
+    onBlog?: () => void;
 }
 
 export const PublicLayout: React.FC<PublicLayoutProps> = ({
@@ -18,10 +20,12 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
     onGetStarted,
     onLogin,
     onFeatures,
+    onPricing,
     onHome,
     onPrivacy,
     onTerms,
-    onSecurity
+    onSecurity,
+    onBlog
 }) => {
     React.useEffect(() => {
         window.scrollTo(0, 0);
@@ -33,7 +37,9 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
                 onGetStarted={onGetStarted}
                 onLogin={onLogin}
                 onFeatures={onFeatures}
+                onPricing={onPricing}
                 onHome={onHome}
+                onBlog={onBlog}
             />
             <main className="flex-1">
                 {children}

@@ -10,6 +10,7 @@ import { History } from './components/History';
 import { TradingLogic } from './tradingLogic';
 import { LandingPage } from './components/LandingPage';
 import { Layout } from './components/Layout';
+import { startTrial } from './lib/trialService';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { UserProfile } from './components/UserProfile';
 import { History as HistoryIcon } from 'lucide-react';
@@ -23,6 +24,13 @@ import { PublicLayout } from './components/PublicLayout';
 import { PrivacyPage } from './components/PrivacyPage';
 import { TermsPage } from './components/TermsPage';
 import { SecurityPage } from './components/SecurityPage';
+import { PricingPage } from './components/PricingPage';
+import { BlogIndex } from './components/Blog/BlogIndex';
+import { BlogPost } from './components/Blog/BlogPost';
+import { useAccess } from './lib/useAccess';
+import { AdminReview } from './components/AdminReview';
+import { BlogManager } from './components/Admin/BlogManager';
+import { isAdmin } from './config/adminConfig';
 
 interface TradeRecord {
     id: number; // Timestamp
@@ -39,6 +47,7 @@ function App() {
     const [dbSessionId, setDbSessionId] = useState<string | null>(null);
     const [viewImage, setViewImage] = useState<string | null>(null);
 
+
     const [config, setConfig] = useState({
         capital: 100,
         totalTrades: 6,
@@ -53,15 +62,26 @@ function App() {
 
     const [trades, setTrades] = useState<TradeRecord[]>([]);
     const [sessionCount, setSessionCount] = useState(1);
-    const [todaySessionCount, setTodaySessionCount] = useState(0);
+    const [isRiskCritical, setIsRiskCritical] = useState(false);
     const [userName, setUserName] = useState<string>('');
     const [avatarUrl, setAvatarUrl] = useState<string>('');
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // View State with Persistence
+    // Access State
+    const { hasFullAccess, access } = useAccess(session?.user.id);
+
+    // Auth & UI View State
+    const [authView, setAuthView] = useState<'login' | 'signup' | null>(null);
+    const [authType, setAuthType] = useState<'subscription' | 'trial' | 'affiliate'>('subscription');
     const [currentView, setCurrentView] = useState(() => {
         return localStorage.getItem('tradeflow_current_view') || 'trademanager';
     });
+    const [showFeaturesPage, setShowFeaturesPage] = useState(false);
+    const [showDemoPage, setShowDemoPage] = useState(false);
+    const [showPricingPage, setShowPricingPage] = useState(false);
+    const [showBlogPage, setShowBlogPage] = useState(false);
+    const [selectedBlogPost, setSelectedBlogPost] = useState<string | null>(null);
+    const [legalPageView, setLegalPageView] = useState<'privacy' | 'terms' | 'security' | null>(null);
 
     useEffect(() => {
         if (currentView !== 'update-password') {
@@ -71,19 +91,98 @@ function App() {
 
     // Auth & Data Loading
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setLoading(false);
-        });
+        let mounted = true;
+        let isInitialized = false;
 
+        console.log('[App] Starting Auth Initialization...');
+
+        const completeLoading = (source: string) => {
+            if (mounted && !isInitialized) {
+                console.log(`[App] Auth Initialization Complete (via ${source}).`);
+                isInitialized = true;
+                setLoading(false);
+            }
+        };
+
+        // Safety Timeout: Force clear loading if Supabase hangs too long
+        const safetyTimeout = setTimeout(() => {
+            if (mounted && !isInitialized) {
+                console.warn('[App] Loading safety timeout reached (3s). Forcing load completion.');
+                completeLoading('timeout');
+            }
+        }, 3000);
+
+        // 1. Listen for Auth Changes (Setup before getSession to catch immediate events)
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            setSession(session);
-            if (event === 'PASSWORD_RECOVERY') {
-                setCurrentView('update-password');
+            if (mounted) {
+                console.log('[App] Auth State Changed:', event, session?.user?.id ? 'User Found' : 'No User');
+                setSession(session);
+
+                // @ts-ignore - Exporting for easy testing
+                window.__USER_ID__ = session?.user.id;
+
+                if (event === 'PASSWORD_RECOVERY') {
+                    setCurrentView('update-password');
+                }
+
+                // Any authoritative event settles the initial loading state
+                completeLoading(`auth-change:${event}`);
             }
         });
 
-        return () => subscription.unsubscribe();
+        // 2. Get Initial Session (Parallel fallback)
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (mounted) {
+                console.log('[App] Initial session retrieved:', session?.user?.id ? 'Logged In' : 'Guest');
+                setSession(session);
+                completeLoading('get-session');
+            }
+        }).catch(err => {
+            console.error('[App] Initial session load error:', err);
+            if (mounted) completeLoading('get-session-error');
+        });
+
+        return () => {
+            mounted = false;
+            clearTimeout(safetyTimeout);
+            subscription.unsubscribe();
+        };
+    }, []);
+
+    // NEW: Handle Trial Auto-Activation
+    useEffect(() => {
+        if (!session) return;
+
+        const handleTrialActivation = async () => {
+            const signupType = session.user.user_metadata?.signup_type;
+            if (signupType === 'trial' || authType === 'trial') {
+                console.log('[App] Trial activation requested...');
+                try {
+                    await startTrial(session.user.id);
+                } catch (err) {
+                    console.error('[App] Failed to auto-start trial:', err);
+                } finally {
+                    setAuthType('subscription');
+                }
+            }
+        };
+
+        handleTrialActivation();
+    }, [session?.user.id, authType]);
+
+    useEffect(() => {
+        const handleOpenAuth = (e: any) => {
+            if (typeof e.detail === 'string') {
+                setAuthView(e.detail);
+                setAuthType('subscription'); // Default
+            } else {
+                setAuthView(e.detail.view);
+                setAuthType(e.detail.type || 'subscription');
+            }
+            setShowPricingPage(false);
+        };
+        window.addEventListener('open-auth', handleOpenAuth);
+        return () => window.removeEventListener('open-auth', handleOpenAuth);
     }, []);
 
     // Load User Data
@@ -127,14 +226,13 @@ function App() {
             const startOfToday = new Date();
             startOfToday.setHours(0, 0, 0, 0);
 
-            const { count: sessionCountToday } = await supabase
+            await supabase
                 .from('sessions')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', session.user.id)
                 .eq('is_active', false)
                 .gte('created_at', startOfToday.toISOString());
 
-            setTodaySessionCount(sessionCountToday || 0);
 
             if (activeSession) {
                 setDbSessionId(activeSession.id);
@@ -235,17 +333,23 @@ function App() {
         }
     }, [logic, config.dailyGoal, config.dailyGoalType, config.capital]);
 
-    const isRiskCritical = useMemo(() => {
-        if (!config.stopLossEnabled) return false;
+    useEffect(() => {
+        if (!config.stopLossEnabled) {
+            setIsRiskCritical(false);
+            return;
+        }
         const currentDrawdown = currentPortfolio < config.capital
             ? ((config.capital - currentPortfolio) / config.capital) * 100
             : 0;
-        return currentDrawdown >= config.stopLossLimit;
+        setIsRiskCritical(currentDrawdown >= config.stopLossLimit);
     }, [config.stopLossEnabled, config.stopLossLimit, currentPortfolio, config.capital]);
 
     // Actions
     const handleTradeResult = useCallback(async (result: 'W' | 'L') => {
         if (!session || isProcessing) return;
+
+        // If no full access, we allow local execution for "Sandbox Mode"
+        // but we skip all DB inserts.
 
         setIsProcessing(true);
         try {
@@ -258,46 +362,47 @@ function App() {
                 portfolioAfter -= amount;
             }
 
-            // DB Sync
+            // DB Sync - Only if user has full access
             let currentDbSessionId = dbSessionId;
-
-            // Create session if not exists
-            if (!currentDbSessionId) {
-                const { data, error } = await supabase
-                    .from('sessions')
-                    .insert({
-                        user_id: session.user.id,
-                        session_number: sessionCount,
-                        initial_capital: config.capital,
-                        is_active: true
-                    })
-                    .select()
-                    .single();
-
-                if (data) {
-                    currentDbSessionId = data.id;
-                    setDbSessionId(data.id);
-                } else if (error) {
-                    console.error("Error creating session", error);
-                    return;
-                }
-            }
-
             let newDbTradeId: string | undefined;
 
-            if (currentDbSessionId) {
-                const { data: insertedTrade } = await supabase.from('trades').insert({
-                    session_id: currentDbSessionId,
-                    user_id: session.user.id,
-                    trade_index: currentTradeIndex, // 0-based
-                    wins_reached: currentWins + (result === 'W' ? 1 : 0),
-                    amount: amount,
-                    result: result,
-                    portfolio_after: portfolioAfter
-                }).select().single();
+            if (hasFullAccess) {
+                // Create session if not exists
+                if (!currentDbSessionId) {
+                    const { data, error } = await supabase
+                        .from('sessions')
+                        .insert({
+                            user_id: session.user.id,
+                            session_number: sessionCount,
+                            initial_capital: config.capital,
+                            is_active: true
+                        })
+                        .select()
+                        .single();
 
-                if (insertedTrade) {
-                    newDbTradeId = insertedTrade.id;
+                    if (data) {
+                        currentDbSessionId = data.id;
+                        setDbSessionId(data.id);
+                    } else if (error) {
+                        console.error("Error creating session", error);
+                        return;
+                    }
+                }
+
+                if (currentDbSessionId) {
+                    const { data: insertedTrade } = await supabase.from('trades').insert({
+                        session_id: currentDbSessionId,
+                        user_id: session.user.id,
+                        trade_index: currentTradeIndex, // 0-based
+                        wins_reached: currentWins + (result === 'W' ? 1 : 0),
+                        amount: amount,
+                        result: result,
+                        portfolio_after: portfolioAfter
+                    }).select().single();
+
+                    if (insertedTrade) {
+                        newDbTradeId = insertedTrade.id;
+                    }
                 }
             }
 
@@ -312,6 +417,8 @@ function App() {
 
             // UI Update
             setTrades(prev => [...prev, newTrade]);
+        } catch (error) {
+            console.error("Trade entry error", error);
         } finally {
             setIsProcessing(false);
         }
@@ -333,7 +440,7 @@ function App() {
     };
 
     const handleSaveConfig = async () => {
-        if (!session) return;
+        if (!session || !hasFullAccess) return;
 
         const { error } = await supabase.from('protected_configs').upsert({
             user_id: session.user.id,
@@ -353,6 +460,7 @@ function App() {
     };
 
     const handleReset = async () => {
+        // Restricted users can RESET their local simulator state
         const isSessionComplete = currentWins >= config.targetWins || trades.length >= config.totalTrades;
         let nextCapital = config.capital;
 
@@ -360,8 +468,8 @@ function App() {
             nextCapital = Math.round(currentPortfolio * 100) / 100;
         }
 
-        // Close current session in DB
-        if (dbSessionId && session) {
+        // Close current session in DB - ONLY if full access
+        if (hasFullAccess && dbSessionId && session) {
             let outcome = 'BREAKEVEN';
             if (currentPortfolio > config.capital) outcome = 'WIN';
             if (currentPortfolio < config.capital) outcome = 'LOSS';
@@ -379,7 +487,7 @@ function App() {
                 .eq('id', dbSessionId);
         }
 
-        if (session) {
+        if (hasFullAccess && session) {
             // Get next session number (Global MAX + 1)
             const { data: maxSession } = await supabase
                 .from('sessions')
@@ -395,14 +503,13 @@ function App() {
             const startOfToday = new Date();
             startOfToday.setHours(0, 0, 0, 0);
 
-            const { count: sessionCountToday } = await supabase
+            await supabase
                 .from('sessions')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', session.user.id)
                 .eq('is_active', false)
                 .gte('created_at', startOfToday.toISOString());
 
-            setTodaySessionCount(sessionCountToday || 0);
         }
 
         // Update config if compounding
@@ -429,7 +536,7 @@ function App() {
     };
 
     const handleUploadEvidence = async (tradeIndex: number, file: File) => {
-        if (!session || !trades[tradeIndex] || !trades[tradeIndex].dbId) {
+        if (!session || !hasFullAccess || !trades[tradeIndex] || !trades[tradeIndex].dbId) {
             console.error("Cannot upload: Missing session or trade DB ID");
             return;
         }
@@ -485,16 +592,14 @@ function App() {
         }
     };
 
-    const [authView, setAuthView] = useState<'login' | 'signup' | null>(null);
-    const [showFeaturesPage, setShowFeaturesPage] = useState(false);
-    const [showDemoPage, setShowDemoPage] = useState(false);
-    const [legalPageView, setLegalPageView] = useState<'privacy' | 'terms' | 'security' | null>(null);
-
     const closePublicPages = () => {
         setShowFeaturesPage(false);
         setShowDemoPage(false);
+        setShowPricingPage(false);
         setLegalPageView(null);
         setAuthView(null);
+        setShowBlogPage(false);
+        setSelectedBlogPost(null);
     };
 
     if (loading) return (
@@ -508,13 +613,14 @@ function App() {
     if (legalPageView) {
         return (
             <PublicLayout
-                onGetStarted={() => { setAuthView('signup'); setLegalPageView(null); }}
+                onGetStarted={() => { setShowPricingPage(true); setLegalPageView(null); }}
                 onLogin={() => { setAuthView('login'); setLegalPageView(null); }}
                 onFeatures={() => { setShowFeaturesPage(true); setLegalPageView(null); }}
                 onHome={closePublicPages}
                 onPrivacy={() => setLegalPageView('privacy')}
                 onTerms={() => setLegalPageView('terms')}
                 onSecurity={() => setLegalPageView('security')}
+                onPricing={() => { setShowPricingPage(true); setLegalPageView(null); }}
             >
                 {legalPageView === 'privacy' && <PrivacyPage />}
                 {legalPageView === 'terms' && <TermsPage />}
@@ -527,15 +633,22 @@ function App() {
     if (showFeaturesPage) {
         return (
             <PublicLayout
-                onGetStarted={() => { setAuthView('signup'); setShowFeaturesPage(false); }}
+                onGetStarted={() => { setShowPricingPage(true); setShowFeaturesPage(false); }}
                 onLogin={() => { setAuthView('login'); setShowFeaturesPage(false); }}
                 onFeatures={() => setShowFeaturesPage(true)}
+                onPricing={() => { setShowPricingPage(true); setShowFeaturesPage(false); }}
                 onHome={closePublicPages}
                 onPrivacy={() => setLegalPageView('privacy')}
                 onTerms={() => setLegalPageView('terms')}
                 onSecurity={() => setLegalPageView('security')}
             >
-                <FeaturesPage onBack={closePublicPages} />
+                <FeaturesPage
+                    onBack={closePublicPages}
+                    onGetStarted={() => {
+                        setShowFeaturesPage(false);
+                        setShowPricingPage(true);
+                    }}
+                />
             </PublicLayout>
         );
     }
@@ -544,15 +657,50 @@ function App() {
     if (showDemoPage) {
         return (
             <PublicLayout
-                onGetStarted={() => { setAuthView('signup'); setShowDemoPage(false); }}
+                onGetStarted={() => { setShowPricingPage(true); setShowDemoPage(false); }}
                 onLogin={() => { setAuthView('login'); setShowDemoPage(false); }}
                 onFeatures={() => { setShowFeaturesPage(true); setShowDemoPage(false); }}
+                onPricing={() => { setShowPricingPage(true); setShowDemoPage(false); }}
                 onHome={closePublicPages}
                 onPrivacy={() => setLegalPageView('privacy')}
                 onTerms={() => setLegalPageView('terms')}
                 onSecurity={() => setLegalPageView('security')}
             >
-                <DemoPage onBack={closePublicPages} />
+                <DemoPage
+                    onBack={closePublicPages}
+                    onGetStarted={() => {
+                        setShowDemoPage(false);
+                        setShowPricingPage(true);
+                    }}
+                />
+            </PublicLayout>
+        );
+    }
+
+    // Blog Pages (Public)
+    if (showBlogPage) {
+        return (
+            <PublicLayout
+                onGetStarted={() => { setShowPricingPage(true); setShowBlogPage(false); setSelectedBlogPost(null); }}
+                onLogin={() => { setAuthView('login'); setShowBlogPage(false); setSelectedBlogPost(null); }}
+                onFeatures={() => { setShowFeaturesPage(true); setShowBlogPage(false); setSelectedBlogPost(null); }}
+                onPricing={() => { setShowPricingPage(true); setShowBlogPage(false); setSelectedBlogPost(null); }}
+                onHome={closePublicPages}
+                onPrivacy={() => setLegalPageView('privacy')}
+                onTerms={() => setLegalPageView('terms')}
+                onSecurity={() => setLegalPageView('security')}
+            >
+                {selectedBlogPost ? (
+                    <BlogPost
+                        slug={selectedBlogPost}
+                        onBack={() => setSelectedBlogPost(null)}
+                    />
+                ) : (
+                    <BlogIndex
+                        onOpenPost={(slug) => setSelectedBlogPost(slug)}
+                        onBack={closePublicPages}
+                    />
+                )}
             </PublicLayout>
         );
     }
@@ -577,25 +725,36 @@ function App() {
                         >
                             ← Back to Home
                         </button>
-                        <AuthUI initialView={authView} />
+                        <AuthUI
+                            initialView={authView}
+                            signupType={authType}
+                        />
                     </div>
                 </div>
             );
         }
         return (
             <PublicLayout
-                onGetStarted={() => setAuthView('signup')}
+                onGetStarted={() => setShowPricingPage(true)}
                 onLogin={() => setAuthView('login')}
                 onFeatures={() => setShowFeaturesPage(true)}
+                onPricing={() => setShowPricingPage(true)}
                 onHome={closePublicPages}
                 onPrivacy={() => setLegalPageView('privacy')}
                 onTerms={() => setLegalPageView('terms')}
                 onSecurity={() => setLegalPageView('security')}
+                onBlog={() => setShowBlogPage(true)}
             >
-                <LandingPage
-                    onGetStarted={() => setAuthView('signup')}
-                    onDemo={() => setShowDemoPage(true)}
-                />
+                {showPricingPage ? (
+                    <PricingPage onBack={closePublicPages} />
+                ) : (
+                    <LandingPage
+                        onGetStarted={() => setShowPricingPage(true)}
+                        onDemo={() => setShowDemoPage(true)}
+                        session={session}
+                        setCurrentView={setCurrentView}
+                    />
+                )}
             </PublicLayout>
         );
     }
@@ -608,6 +767,8 @@ function App() {
             case 'calculator': return 'Compound Calculator';
             case 'settings': return 'Configuration';
             case 'profile': return 'User Profile';
+            case 'blog-manager': return 'Blog Manager';
+            case 'admin': return 'Admin Review';
             case 'update-password': return 'Update Password';
             default: return 'Dashboard';
         }
@@ -623,14 +784,12 @@ function App() {
                 setCurrentView(v => v === 'settings' ? 'trademanager' : 'settings');
             }}
             activeView={currentView}
-            onNavigate={(view) => {
-                if (view === 'history') {
-                    setCurrentView('history');
-                } else {
-                    setCurrentView(view);
-                }
-            }}
+            onNavigate={setCurrentView}
             pageTitle={getPageTitle()}
+            accessStatus={access.status}
+            accessType={access.access_type}
+            planTier={access.plan_tier}
+            validUntil={access.valid_until}
         >
             {/* Dashboard View: Stats + History Table */}
             {currentView === 'dashboard' && (
@@ -663,9 +822,14 @@ function App() {
                 </div>
             )}
 
+            {/* Blog Manager View */}
+            {currentView === 'blog-manager' && (
+                <BlogManager />
+            )}
+
             {/* Trade Manager View: Stats + Execution + Config */}
             {currentView === 'trademanager' && (
-                <>
+                <div className="flex flex-col gap-8 pb-10">
                     <Dashboard
                         currentPortfolio={currentPortfolio}
                         initialCapital={config.capital}
@@ -674,7 +838,7 @@ function App() {
                         projectedGrowth={projectedGrowth}
                         stopLossLimit={config.stopLossLimit}
                         stopLossEnabled={config.stopLossEnabled}
-                        sessionCount={todaySessionCount + 1}
+                        sessionCount={config.totalTrades - trades.length}
                         sessionsRequired={sessionsRequired}
                     />
 
@@ -683,14 +847,23 @@ function App() {
                             <TradeEntry
                                 amount={nextTradeAmount}
                                 onResult={handleTradeResult}
-                                disabled={trades.length >= config.totalTrades || currentWins >= config.targetWins || isProcessing}
+                                disabled={trades.length >= config.totalTrades || currentWins >= config.targetWins || isProcessing || !hasFullAccess}
                                 isRiskCritical={isRiskCritical}
+                                isReadOnly={!hasFullAccess}
                             />
+                            <div className="flex items-center justify-between px-1">
+                                <div className="flex items-center gap-1.5">
+                                    <span className={`text-[10px] font-mono font-bold ${config.capital < minRequiredCapital ? 'text-red-400 animate-pulse' : 'text-emerald-400/80'}`}>
+                                        ($) {minRequiredCapital.toFixed(2)} min.
+                                    </span>
+                                </div>
+                            </div>
                             <TradeLog
                                 trades={trades}
                                 onReset={handleReset}
                                 onUploadEvidence={handleUploadEvidence}
                                 onViewEvidence={setViewImage}
+                                isReadOnly={!hasFullAccess}
                             />
                         </div>
 
@@ -709,10 +882,11 @@ function App() {
                                 minRequiredCapital={minRequiredCapital}
                                 onUpdate={handleConfigUpdate}
                                 onSave={handleSaveConfig}
+                                isReadOnly={!hasFullAccess}
                             />
                         </aside>
                     </div>
-                </>
+                </div>
             )}
 
             {/* History View (Sidebar) */}
@@ -729,7 +903,6 @@ function App() {
                 </div>
             )}
 
-            {/* Settings View */}
             {currentView === 'settings' && (
                 <div className="max-w-2xl mx-auto">
                     <CalculationsPanel
@@ -746,7 +919,14 @@ function App() {
                         minRequiredCapital={minRequiredCapital}
                         onUpdate={handleConfigUpdate}
                         onSave={handleSaveConfig}
+                        isReadOnly={!hasFullAccess}
                     />
+                </div>
+            )}
+
+            {currentView === 'admin' && isAdmin(session.user.email) && (
+                <div className="h-full">
+                    <AdminReview />
                 </div>
             )}
 
@@ -755,7 +935,10 @@ function App() {
             {currentView === 'profile' && (
                 <UserProfile
                     session={session}
-
+                    isReadOnly={!hasFullAccess}
+                    accessStatus={access.status}
+                    accessType={access.access_type}
+                    onNavigate={setCurrentView}
                     onProfileUpdate={(data) => {
                         setUserName(data.full_name);
                         setAvatarUrl(data.avatar_url || '');

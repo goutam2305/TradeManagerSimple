@@ -5,9 +5,16 @@ import { motion } from 'framer-motion';
 interface LandingPageProps {
     onGetStarted: () => void;
     onDemo: () => void;
+    session: any;
+    setCurrentView: (view: string) => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDemo }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({
+    onGetStarted,
+    onDemo,
+    session,
+    setCurrentView
+}) => {
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -62,10 +69,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDemo }
 
                     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                         <button
-                            onClick={onGetStarted}
+                            onClick={() => {
+                                if (session) setCurrentView('pricing');
+                                else onGetStarted();
+                            }}
                             className="w-full sm:w-auto px-10 py-5 rounded-xl bg-accent hover:bg-accent-hover text-background font-black text-lg transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] uppercase tracking-wider animate-pulse-glow"
                         >
-                            Get Started for Free
+                            {session ? 'View Pricing' : 'Get Started for Free'}
                         </button>
                         <button
                             onClick={onDemo}
@@ -160,10 +170,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDemo }
                         Join 15,000+ traders who have optimized their profitability using TradeFlow's institutional tools.
                     </p>
                     <button
-                        onClick={onGetStarted}
+                        onClick={() => {
+                            if (session) setCurrentView('pricing');
+                            else onGetStarted();
+                        }}
                         className="px-12 py-5 rounded-2xl bg-accent hover:bg-accent-hover text-background font-black text-xl transition-all hover:scale-105 relative z-10 shadow-xl hover:shadow-[0_0_40px_rgba(34,211,238,0.5)] animate-pulse-glow uppercase tracking-widest"
                     >
-                        Get Started Now — It's Free
+                        {session ? 'Unlock Pro Access' : 'Get Started Now — It\'s Free'}
                     </button>
 
                     <div className="mt-8 text-sm text-text-secondary/50 font-bold uppercase tracking-[0.3em] relative z-10">

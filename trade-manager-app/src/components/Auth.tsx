@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
 import { BarChart2, Mail, Lock, User, ArrowRight, Loader2, AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
@@ -6,9 +6,10 @@ type AuthView = 'login' | 'signup' | 'forgot_password';
 
 interface AuthUIProps {
     initialView?: AuthView;
+    signupType?: 'subscription' | 'trial' | 'affiliate';
 }
 
-export const AuthUI = ({ initialView = 'login' }: AuthUIProps) => {
+export const AuthUI = ({ initialView = 'login', signupType }: AuthUIProps) => {
     const [view, setView] = useState<AuthView>(initialView);
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
@@ -18,6 +19,18 @@ export const AuthUI = ({ initialView = 'login' }: AuthUIProps) => {
     const [error, setError] = useState<string | null>(null);
     const [resetSent, setResetSent] = useState(false);
     const [cooldown, setCooldown] = useState(0);
+    const derivedSignupType = useMemo(() => {
+        const params = new URLSearchParams(window.location.search);
+        const ref = params.get('ref');
+        const flow = params.get('flow');
+
+        if (ref === 'affiliate') {
+            return 'affiliate';
+        } else if (flow === 'paid') {
+            return 'subscription';
+        }
+        return signupType || 'subscription';
+    }, [signupType]);
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
@@ -49,7 +62,10 @@ export const AuthUI = ({ initialView = 'login' }: AuthUIProps) => {
                     email,
                     password,
                     options: {
-                        data: { full_name: fullName },
+                        data: {
+                            full_name: fullName,
+                            signup_type: derivedSignupType
+                        },
                     },
                 });
                 if (error) throw error;

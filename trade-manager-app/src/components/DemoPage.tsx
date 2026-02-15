@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface DemoPageProps {
     onBack: () => void;
+    onGetStarted: () => void;
 }
 
 interface Video {
@@ -46,7 +47,7 @@ const DEMO_VIDEOS: Video[] = [
     }
 ];
 
-export const DemoPage: React.FC<DemoPageProps> = ({ onBack }) => {
+export const DemoPage: React.FC<DemoPageProps> = ({ onGetStarted }) => {
     const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
     return (
@@ -71,9 +72,15 @@ export const DemoPage: React.FC<DemoPageProps> = ({ onBack }) => {
                     <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-[0.9] text-glow uppercase font-heading">
                         TRADING <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-blue-400 to-accent bg-[length:200%_auto] animate-gradient">INSIGHTS</span>
                     </h1>
-                    <p className="text-lg md:text-2xl text-text-secondary max-w-2xl mx-auto leading-relaxed font-medium">
+                    <p className="text-lg md:text-2xl text-text-secondary max-w-2xl mx-auto leading-relaxed font-medium mb-10">
                         Explore our platform capabilities through high-quality training and demonstration videos.
                     </p>
+                    <button
+                        onClick={onGetStarted}
+                        className="px-10 py-5 rounded-2xl bg-accent hover:bg-accent-hover text-background font-black text-xl transition-all hover:scale-105 shadow-xl hover:shadow-[0_0_40px_rgba(34,211,238,0.5)] animate-pulse-glow uppercase tracking-widest"
+                    >
+                        Get Started Now — It's Free
+                    </button>
 
 
                 </motion.div>
@@ -142,7 +149,7 @@ export const DemoPage: React.FC<DemoPageProps> = ({ onBack }) => {
                             Join 15,000+ traders who have optimized their profitability using TradeFlow's institutional tools.
                         </p>
                         <button
-                            onClick={onBack}
+                            onClick={onGetStarted}
                             className="px-12 py-5 rounded-2xl bg-accent hover:bg-accent-hover text-background font-black text-xl transition-all hover:scale-105 relative z-10 shadow-xl hover:shadow-[0_0_40px_rgba(34,211,238,0.5)] animate-pulse-glow uppercase tracking-widest"
                         >
                             Get Started Now — It's Free
