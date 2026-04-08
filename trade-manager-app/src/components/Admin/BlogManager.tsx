@@ -62,6 +62,9 @@ export const BlogManager: React.FC = () => {
         setIsEditing(true);
     };
 
+
+
+
     const handleCloseEditor = () => {
         setIsEditing(false);
         setSelectedPost(null);
@@ -92,6 +95,7 @@ export const BlogManager: React.FC = () => {
                         <Plus className="w-5 h-5" />
                         New Article
                     </button>
+
                 </div>
 
                 {/* Search Bar */}
